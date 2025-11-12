@@ -1,0 +1,1837 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media Utilities - Viewer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        /* ===== CSS VARIABLES ===== */
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --accent-color: #f093fb;
+            --dark-bg: #0a0e27;
+            --darker-bg: #050816;
+            --card-bg: #1a1f3a;
+            --text-primary: #ffffff;
+            --text-secondary: #b4b4c5;
+            --text-muted: #8892b0;
+            --success-color: #10b981;
+            --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--darker-bg);
+            min-height: 100vh;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header h1 {
+            color: var(--text-primary);
+            margin-bottom: 1.5rem;
+            font-size: 2.5rem;
+            text-align: center;
+            font-weight: 700;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .directory-selector {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .directory-input {
+            padding: 0.875rem 1.5rem;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            font-size: 1rem;
+            min-width: 300px;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            font-family: 'Fira Code', monospace;
+        }
+
+        .directory-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .directory-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .btn {
+            padding: 0.875rem 2rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .btn-primary {
+            background: var(--gradient-1);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--primary-color);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.2);
+        }
+
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+        }
+
+        .content {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 50vh;
+        }
+
+        .timeline {
+            position: relative;
+        }
+
+        .year-section {
+            margin-bottom: 2rem;
+            border-left: 4px solid var(--primary-color);
+            padding-left: 1.5rem;
+        }
+
+        .year-header {
+            background: var(--gradient-1);
+            color: var(--text-primary);
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .year-header:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .year-header.collapsed::after {
+            content: "▼";
+            transform: rotate(-90deg);
+        }
+
+        .year-header:not(.collapsed)::after {
+            content: "▼";
+        }
+
+        .months-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .month-card {
+            background: var(--darker-bg);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            min-height: 200px;
+        }
+
+        .month-card:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 25px rgba(102, 126, 234, 0.25);
+        }
+
+        .month-header {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .month-stats {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .month-footer {
+            margin-top: auto;
+            padding-top: 10px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .days-preview {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(32px, 1fr));
+            gap: 4px;
+            margin-top: 12px;
+            padding-bottom: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding-right: 4px;
+        }
+
+        .days-preview::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .days-preview::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .days-preview::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        .days-preview::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        .day-badge {
+            background: var(--gradient-1);
+            color: var(--text-primary);
+            padding: 6px 4px;
+            border-radius: 6px;
+            font-size: 0.75em;
+            font-weight: 500;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Fira Code', monospace;
+        }
+
+        .day-badge:hover {
+            background: var(--secondary-color);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+        }
+
+        .special-section {
+            background: rgba(239, 68, 68, 0.1);
+            border: 2px solid rgba(239, 68, 68, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .special-section h3 {
+            color: #f87171;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .image-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .image-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+            border-color: var(--primary-color);
+        }
+
+        .image-thumbnail {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            background: #f7fafc;
+        }
+
+        .image-info {
+            padding: 10px;
+        }
+
+        .image-name {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            word-break: break-word;
+        }
+
+        .image-size {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-family: 'Fira Code', monospace;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .error {
+            background: rgba(239, 68, 68, 0.1);
+            color: #f87171;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Modal für Bildanzeige */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            max-width: 90%;
+            max-height: 90%;
+        }
+
+        .modal-image, .modal-video {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 8px;
+        }
+
+        .modal-audio {
+            max-width: 500px;
+            width: 90%;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            color: #333;
+        }
+
+        .audio-info {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .audio-icon {
+            font-size: 4em;
+            margin-bottom: 15px;
+        }
+
+        .audio-filename {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #4a5568;
+            margin-bottom: 8px;
+            word-break: break-word;
+        }
+
+        .audio-details {
+            color: #718096;
+            font-size: 0.9em;
+        }
+
+        .audio-player {
+            width: 100%;
+            height: 40px;
+            border-radius: 8px;
+            background: #f8fafc;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: white;
+            font-size: 40px;
+            cursor: pointer;
+            z-index: 1001;
+        }
+
+        .modal-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            font-size: 24px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .modal-nav:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .modal-prev {
+            left: 20px;
+        }
+
+        .modal-next {
+            right: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .directory-selector {
+                flex-direction: column;
+            }
+            
+            .directory-input {
+                min-width: 100%;
+            }
+            
+            .months-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .image-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+            
+            .days-preview {
+                grid-template-columns: repeat(auto-fill, minmax(28px, 1fr));
+                gap: 3px;
+                max-height: 100px;
+            }
+            
+            .day-badge {
+                font-size: 0.7em;
+                padding: 4px 2px;
+                min-height: 20px;
+            }
+        }
+
+        /* Hover Preview Styles */
+        .hover-preview {
+            position: absolute;
+            z-index: 9999;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            pointer-events: none;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: all 0.3s ease;
+            min-width: 400px;
+            max-width: 900px;
+            width: auto;
+        }
+
+        .hover-preview.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .hover-preview-header {
+            color: white;
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .hover-preview-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        /* Dynamische Grid-Layouts je nach Anzahl */
+        .hover-preview-grid.single {
+            grid-template-columns: 1fr;
+        }
+
+        .hover-preview-grid.double {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .hover-preview-grid.triple {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .hover-preview-grid.quad {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .hover-preview-item {
+            border-radius: 8px;
+            overflow: hidden;
+            background: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        /* Größen je nach Layout */
+        .hover-preview-grid.single .hover-preview-item {
+            width: 600px;
+            height: 450px;
+        }
+
+        .hover-preview-grid.double .hover-preview-item {
+            width: 280px;
+            height: 210px;
+        }
+
+        .hover-preview-grid.triple .hover-preview-item {
+            width: 200px;
+            height: 150px;
+        }
+
+        .hover-preview-grid.quad .hover-preview-item {
+            width: 240px;
+            height: 180px;
+        }
+
+        .hover-preview-item:hover {
+            transform: scale(1.05);
+            z-index: 10;
+        }
+
+        .hover-preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .hover-preview-item video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .hover-preview-item .media-icon {
+            color: white;
+            font-size: 3em;
+        }
+
+        .hover-preview-counter {
+            color: #ccc;
+            font-size: 1em;
+            text-align: center;
+            margin-top: 15px;
+        }
+
+
+
+        .hover-preview-more {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            font-size: 0.8em;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+
+        /* Große Monitore */
+        @media (min-width: 1920px) {
+            .hover-preview {
+                max-width: 1200px;
+                min-width: 500px;
+            }
+            
+            .hover-preview-grid.single .hover-preview-item {
+                width: 800px;
+                height: 600px;
+            }
+
+            .hover-preview-grid.double .hover-preview-item {
+                width: 380px;
+                height: 285px;
+            }
+
+            .hover-preview-grid.triple .hover-preview-item {
+                width: 260px;
+                height: 195px;
+            }
+
+            .hover-preview-grid.quad .hover-preview-item {
+                width: 320px;
+                height: 240px;
+            }
+        }
+
+        /* Sehr große Monitore (4K+) */
+        @media (min-width: 2560px) {
+            .hover-preview {
+                max-width: 1500px;
+                min-width: 600px;
+                padding: 30px;
+            }
+            
+            .hover-preview-grid.single .hover-preview-item {
+                width: 1000px;
+                height: 750px;
+            }
+
+            .hover-preview-grid.double .hover-preview-item {
+                width: 480px;
+                height: 360px;
+            }
+
+            .hover-preview-grid.triple .hover-preview-item {
+                width: 320px;
+                height: 240px;
+            }
+
+            .hover-preview-grid.quad .hover-preview-item {
+                width: 400px;
+                height: 300px;
+            }
+        }
+
+        /* Responsive Breakpoints für Preview */
+        @media (max-width: 1200px) {
+            .hover-preview {
+                max-width: 600px;
+                min-width: 350px;
+                padding: 20px;
+            }
+            
+            .hover-preview-grid.single .hover-preview-item {
+                width: 450px;
+                height: 338px;
+            }
+
+            .hover-preview-grid.double .hover-preview-item {
+                width: 200px;
+                height: 150px;
+            }
+
+            .hover-preview-grid.triple .hover-preview-item {
+                width: 140px;
+                height: 105px;
+            }
+
+            .hover-preview-grid.quad .hover-preview-item {
+                width: 170px;
+                height: 128px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hover-preview {
+                max-width: 400px;
+                min-width: 240px;
+                padding: 12px;
+            }
+            
+            .hover-preview-header {
+                font-size: 1.1em;
+                margin-bottom: 12px;
+            }
+
+            .hover-preview-grid.single .hover-preview-item {
+                width: 280px;
+                height: 210px;
+            }
+
+            .hover-preview-grid.double .hover-preview-item {
+                width: 120px;
+                height: 90px;
+            }
+
+            .hover-preview-grid.triple .hover-preview-item {
+                width: 80px;
+                height: 60px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hover-preview {
+                max-width: 300px;
+                min-width: 200px;
+                padding: 10px;
+            }
+            
+            .hover-preview-grid {
+                gap: 8px;
+            }
+
+            .hover-preview-grid.single .hover-preview-item {
+                width: 240px;
+                height: 180px;
+            }
+
+            .hover-preview-grid.double .hover-preview-item {
+                width: 100px;
+                height: 75px;
+            }
+            
+            .hover-preview-item .media-icon {
+                font-size: 2em;
+            }
+        }
+
+        .show-all-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 15px;
+        }
+
+        .toggle-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .toggle-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .day-badge.empty {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+            cursor: default;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .day-badge.empty:hover {
+            transform: none;
+            box-shadow: none;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .month-card.empty {
+            background: var(--darker-bg);
+            border-color: rgba(255, 255, 255, 0.05);
+            cursor: default;
+            opacity: 0.6;
+        }
+
+        .month-card.empty:hover {
+            transform: none;
+            border-color: rgba(255, 255, 255, 0.05);
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎭 Medien Viewer</h1>
+            <div class="directory-selector">
+                <input type="text" id="directoryInput" class="directory-input" 
+                       placeholder="Pfad zu sortierten Medien (z.B. C:\Sortierte_Medien)">
+                <button id="loadBtn" class="btn btn-primary">📁 Laden</button>
+                <div class="show-all-toggle">
+                                    <input type="checkbox" id="showAllDays" class="toggle-checkbox">
+                <label for="showAllDays" class="toggle-label">Alle Tage/Monate anzeigen (vom ersten bis zum letzten verfügbaren)</label>
+                </div>
+                <div class="show-all-toggle">
+                    <input type="checkbox" id="autoScrollToggle" class="toggle-checkbox">
+                    <label for="autoScrollToggle" class="toggle-label">Auto-Scroll Preview</label>
+                </div>
+            </div>
+        </div>
+
+        <div id="errorMessage" class="error hidden"></div>
+
+        <div id="stats" class="stats hidden">
+            <div class="stat-card">
+                <div class="stat-number" id="totalImages">0</div>
+                <div class="stat-label">Medien insgesamt</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalYears">0</div>
+                <div class="stat-label">Jahre</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalMonths">0</div>
+                <div class="stat-label">Monate</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="unknownImages">0</div>
+                <div class="stat-label">Unbekannte Daten</div>
+            </div>
+        </div>
+
+        <div class="content">
+            <div id="loading" class="loading">
+                Wähle einen Ordner aus, um deine Bilder zu durchsuchen...
+            </div>
+            <div id="timeline" class="timeline hidden"></div>
+        </div>
+    </div>
+
+    <!-- Modal für Medien-Anzeige -->
+    <div id="imageModal" class="modal">
+        <span id="modalClose" class="modal-close" onclick="closeModal()">&times;</span>
+        <div class="modal-content">
+            <img id="modalImage" class="modal-image" alt="Bild" style="display: none;">
+            <video id="modalVideo" class="modal-video" controls style="display: none;"></video>
+            <div id="modalAudio" class="modal-audio" style="display: none;">
+                <div class="audio-info">
+                    <div class="audio-icon">🎵</div>
+                    <div id="audioFileName" class="audio-filename"></div>
+                    <div id="audioDetails" class="audio-details"></div>
+                </div>
+                <audio id="audioPlayer" class="audio-player" controls>
+                    Ihr Browser unterstützt das Audio-Element nicht.
+                </audio>
+            </div>
+        </div>
+        <button id="modalPrev" class="modal-nav modal-prev" onclick="showPrevImage()">&#8249;</button>
+        <button id="modalNext" class="modal-nav modal-next" onclick="showNextImage()">&#8250;</button>
+    </div>
+
+    <!-- Hover Preview -->
+    <div id="hoverPreview" class="hover-preview">
+        <div id="hoverPreviewHeader" class="hover-preview-header"></div>
+        <div id="hoverPreviewGrid" class="hover-preview-grid"></div>
+        <div id="hoverPreviewCounter" class="hover-preview-counter"></div>
+    </div>
+
+    <script>
+        let currentStructure = null;
+        let currentImages = [];
+        let currentImageIndex = 0;
+        let showAllDays = false;
+
+        // Event Listeners
+        document.getElementById('loadBtn').addEventListener('click', loadDirectory);
+        document.getElementById('directoryInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') loadDirectory();
+        });
+        document.getElementById('showAllDays').addEventListener('change', function(e) {
+            showAllDays = e.target.checked;
+            if (currentStructure) {
+                displayStructure(currentStructure);
+            }
+        });
+        document.getElementById('autoScrollToggle').addEventListener('change', function(e) {
+            if (e.target.checked) {
+                startAutoScroll();
+            } else {
+                stopAutoScroll();
+            }
+        });
+
+        // Modal Event Listeners
+        document.getElementById('modalClose').addEventListener('click', closeModal);
+        document.getElementById('modalPrev').addEventListener('click', showPrevImage);
+        document.getElementById('modalNext').addEventListener('click', showNextImage);
+        document.getElementById('imageModal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        // Keyboard Navigation
+        document.addEventListener('keydown', function(e) {
+            if (document.getElementById('imageModal').style.display === 'block') {
+                if (e.key === 'Escape') closeModal();
+                if (e.key === 'ArrowLeft') showPrevImage();
+                if (e.key === 'ArrowRight') showNextImage();
+            } else if (document.getElementById('hoverPreview').classList.contains('visible')) {
+                if (e.key === 'Escape') {
+                    hideHoverPreview();
+                }
+                if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    stopAutoScroll();
+                    showPrevPreview();
+                }
+                if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    stopAutoScroll();
+                    showNextPreview();
+                }
+            }
+        });
+
+        async function loadDirectory() {
+            const directory = document.getElementById('directoryInput').value.trim();
+            if (!directory) {
+                showError('Bitte gib einen Ordnerpfad ein');
+                return;
+            }
+
+            showLoading();
+            hideError();
+
+            try {
+                // Setze Verzeichnis
+                const response = await fetch('/api/set_directory', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ directory: directory })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Fehler beim Setzen des Verzeichnisses');
+                }
+
+                // Lade Struktur
+                const structureResponse = await fetch('/api/structure');
+                if (!structureResponse.ok) {
+                    throw new Error('Fehler beim Laden der Struktur');
+                }
+
+                currentStructure = await structureResponse.json();
+                displayStructure(currentStructure);
+
+            } catch (error) {
+                showError(error.message);
+                hideLoading();
+            }
+        }
+
+        function displayStructure(structure) {
+            hideLoading();
+            
+            // Update Statistiken
+            document.getElementById('totalImages').textContent = structure.total_files;
+            document.getElementById('totalYears').textContent = Object.keys(structure.years).length;
+            
+            let totalMonths = 0;
+            Object.values(structure.years).forEach(year => {
+                totalMonths += Object.keys(year).length;
+            });
+            document.getElementById('totalMonths').textContent = totalMonths;
+            document.getElementById('unknownImages').textContent = structure.unknown_date.length;
+            
+            document.getElementById('stats').classList.remove('hidden');
+
+            // Bestimme globale Zeitspanne für showAllDays
+            let globalFirstYear = null, globalFirstMonth = null;
+            let globalLastYear = null, globalLastMonth = null;
+            
+            if (showAllDays) {
+                // Finde ersten und letzten verfügbaren Monat über alle Jahre
+                const allYears = Object.keys(structure.years).sort((a, b) => a.localeCompare(b));
+                
+                for (const year of allYears) {
+                    const months = Object.keys(structure.years[year]);
+                    if (months.length > 0) {
+                        const sortedMonths = months.map(m => parseInt(m.split('-')[0])).sort((a, b) => a - b);
+                        
+                        if (globalFirstYear === null) {
+                            globalFirstYear = parseInt(year);
+                            globalFirstMonth = sortedMonths[0];
+                        }
+                        
+                        globalLastYear = parseInt(year);
+                        globalLastMonth = sortedMonths[sortedMonths.length - 1];
+                    }
+                }
+            }
+            
+            // Speichere globale Zeitspanne für createYearSection
+            window.globalTimespan = {
+                firstYear: globalFirstYear,
+                firstMonth: globalFirstMonth,
+                lastYear: globalLastYear,
+                lastMonth: globalLastMonth
+            };
+
+            // Erstelle Timeline
+            const timeline = document.getElementById('timeline');
+            timeline.innerHTML = '';
+
+            // Spezielle Bereiche
+            if (structure.unknown_date.length > 0) {
+                const unknownSection = createSpecialSection('⚠️ Unbekannte Daten', structure.unknown_date);
+                timeline.appendChild(unknownSection);
+            }
+
+            if (structure.invalid_date && structure.invalid_date.length > 0) {
+                const invalidSection = createCollapsibleSection('📅 Unrealistische Daten', structure.invalid_date);
+                timeline.appendChild(invalidSection);
+            }
+
+            // Jahre (sortiert, neueste zuerst)
+            let yearsToShow;
+            if (showAllDays && globalFirstYear !== null && globalLastYear !== null) {
+                // Alle Jahre zwischen erstem und letztem verfügbaren Jahr
+                yearsToShow = [];
+                for (let year = globalFirstYear; year <= globalLastYear; year++) {
+                    yearsToShow.push(year.toString());
+                }
+                yearsToShow.sort((a, b) => b.localeCompare(a));
+            } else {
+                // Nur Jahre mit verfügbaren Daten
+                yearsToShow = Object.keys(structure.years).sort((a, b) => b.localeCompare(a));
+            }
+            
+            yearsToShow.forEach(year => {
+                const yearData = structure.years[year] || {};
+                const yearSection = createYearSection(year, yearData);
+                timeline.appendChild(yearSection);
+            });
+
+            timeline.classList.remove('hidden');
+        }
+
+        function createSpecialSection(title, files) {
+            const section = document.createElement('div');
+            section.className = 'special-section';
+            
+            const header = document.createElement('h3');
+            header.textContent = `${title} (${files.length} Dateien)`;
+            section.appendChild(header);
+
+            const grid = createImageGrid(files);
+            section.appendChild(grid);
+
+            return section;
+        }
+
+        function createCollapsibleSection(title, files) {
+            const section = document.createElement('div');
+            section.className = 'special-section';
+            section.style.background = '#f0f9ff'; // Hellblaues Styling für ausklappbare Bereiche
+            section.style.borderColor = '#bfdbfe';
+
+            const header = document.createElement('div');
+            header.className = 'year-header collapsed';
+            header.style.background = 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)';
+            header.textContent = `${title} (${files.length} Dateien)`;
+            header.addEventListener('click', () => toggleCollapsible(header, section));
+
+            const gridContainer = document.createElement('div');
+            gridContainer.className = 'collapsible-content';
+            gridContainer.style.display = 'none'; // Standardmäßig eingeklappt
+            
+            const grid = createImageGrid(files);
+            gridContainer.appendChild(grid);
+
+            section.appendChild(header);
+            section.appendChild(gridContainer);
+
+            return section;
+        }
+
+        function createYearSection(year, months) {
+            const section = document.createElement('div');
+            section.className = 'year-section';
+
+            // Prüfe ob Jahr Medien hat
+            const hasMedia = Object.keys(months).length > 0 && 
+                Object.values(months).some(monthData => {
+                    if (monthData.images && monthData.images.length > 0) return true;
+                    return Object.keys(monthData).some(key => key !== 'images' && monthData[key] && monthData[key].length > 0);
+                });
+
+            const header = document.createElement('div');
+            header.className = hasMedia ? 'year-header' : 'year-header collapsed';
+            header.textContent = `📅 ${year}`;
+            header.addEventListener('click', () => toggleYear(header, section));
+
+            const monthsContainer = document.createElement('div');
+            monthsContainer.className = 'months-grid';
+            
+            // Jahre ohne Medien starten zugeklappt
+            if (!hasMedia) {
+                monthsContainer.style.display = 'none';
+            }
+
+            let allMonths;
+            
+            if (showAllDays && window.globalTimespan && window.globalTimespan.firstYear !== null) {
+                // Verwende globale Zeitspanne
+                const currentYear = parseInt(year);
+                const globalFirst = window.globalTimespan;
+                
+                let startMonth, endMonth;
+                
+                if (currentYear === globalFirst.firstYear && currentYear === globalFirst.lastYear) {
+                    // Erstes und letztes Jahr sind gleich
+                    startMonth = globalFirst.firstMonth;
+                    endMonth = globalFirst.lastMonth;
+                } else if (currentYear === globalFirst.firstYear) {
+                    // Erstes Jahr: ab erstem verfügbaren Monat
+                    startMonth = globalFirst.firstMonth;
+                    endMonth = 12;
+                } else if (currentYear === globalFirst.lastYear) {
+                    // Letztes Jahr: bis letzten verfügbaren Monat
+                    startMonth = 1;
+                    endMonth = globalFirst.lastMonth;
+                } else {
+                    // Zwischenjahr: alle 12 Monate
+                    startMonth = 1;
+                    endMonth = 12;
+                }
+                
+                // Generiere alle Monate in der Zeitspanne
+                allMonths = [];
+                for (let i = startMonth; i <= endMonth; i++) {
+                    const monthNum = String(i).padStart(2, '0');
+                    const monthName = new Date(2000, i - 1).toLocaleString('en-US', {month: 'long'});
+                    allMonths.push(`${monthNum}-${monthName}`);
+                }
+            } else {
+                // Nur verfügbare Monate anzeigen
+                allMonths = Object.keys(months);
+            }
+
+            // Sortiere Monate
+            allMonths.sort((a, b) => {
+                const aNum = parseInt(a.split('-')[0]);
+                const bNum = parseInt(b.split('-')[0]);
+                return bNum - aNum;
+            });
+
+            allMonths.forEach(month => {
+                const monthData = months[month] || { images: [] };
+                const monthCard = createMonthCard(year, month, monthData);
+                monthsContainer.appendChild(monthCard);
+            });
+
+            section.appendChild(header);
+            section.appendChild(monthsContainer);
+
+            return section;
+        }
+
+        function createMonthCard(year, month, data) {
+            const card = document.createElement('div');
+            const hasContent = data.images || Object.keys(data).some(key => key !== 'images' && data[key].length > 0);
+            card.className = `month-card${!hasContent ? ' empty' : ''}`;
+
+            const footer = document.createElement('div');
+            footer.className = 'month-footer';
+
+            const header = document.createElement('div');
+            header.className = 'month-header';
+            header.textContent = `📅 ${month}`;
+
+            const stats = document.createElement('div');
+            stats.className = 'month-stats';
+
+            let allFiles = [];
+            let totalFiles = 0;
+
+            if (data.images) {
+                // Monats-Sortierung
+                allFiles = data.images || [];
+                totalFiles = allFiles.length;
+                stats.textContent = `${totalFiles} Dateien`;
+                
+                // Auch bei Monats-Sortierung Tage anzeigen wenn showAllDays aktiv ist
+                if (showAllDays) {
+                    const daysPreview = document.createElement('div');
+                    daysPreview.className = 'days-preview';
+                    
+                    // Alle möglichen Tage des Monats generieren
+                    const daysInMonth = new Date(parseInt(year), parseInt(month.split('-')[0]), 0).getDate();
+                    const allDays = Array.from({length: daysInMonth}, (_, i) => String(i + 1).padStart(2, '0'));
+
+                    allDays.sort((a, b) => {
+                        const aNum = parseInt(a.replace(/^0+/, '') || '0');
+                        const bNum = parseInt(b.replace(/^0+/, '') || '0');
+                        return bNum - aNum;
+                    }).forEach(day => {
+                        const dayBadge = document.createElement('span');
+                        // Bei Monats-Sortierung sind alle Tage leer (keine spezifischen Tages-Daten)
+                        dayBadge.className = 'day-badge empty';
+                        dayBadge.textContent = day;
+                        
+                        daysPreview.appendChild(dayBadge);
+                    });
+                    
+                    card.appendChild(daysPreview);
+                }
+            } else {
+                // Tages-Sortierung
+                const days = Object.keys(data).filter(key => key !== 'images');
+                days.forEach(day => {
+                    if (data[day]) {
+                        allFiles = allFiles.concat(data[day]);
+                        totalFiles += data[day].length;
+                    }
+                });
+                
+                stats.textContent = `${totalFiles} Dateien in ${days.length} Tagen`;
+                
+                const daysPreview = document.createElement('div');
+                daysPreview.className = 'days-preview';
+                
+                // Alle möglichen Tage des Monats generieren
+                const daysInMonth = new Date(parseInt(year), parseInt(month.split('-')[0]), 0).getDate();
+                const allDays = showAllDays 
+                    ? Array.from({length: daysInMonth}, (_, i) => String(i + 1).padStart(2, '0'))
+                    : days;
+
+                allDays.sort((a, b) => {
+                    const aNum = parseInt(a.replace(/^0+/, '') || '0');
+                    const bNum = parseInt(b.replace(/^0+/, '') || '0');
+                    return bNum - aNum;
+                }).forEach(day => {
+                    const dayBadge = document.createElement('span');
+                    const hasFiles = data[day] && data[day].length > 0;
+                    dayBadge.className = `day-badge${!hasFiles ? ' empty' : ''}`;
+                    dayBadge.textContent = day;
+                    
+                    if (hasFiles) {
+                        // Hover-Preview für Tage mit Dateien
+                        dayBadge.addEventListener('mouseenter', (e) => {
+                            showHoverPreview(e, data[day], `${day}.${month.split('-')[0]}.${year}`);
+                        });
+                        dayBadge.addEventListener('mouseleave', hideHoverPreview);
+                        
+                        dayBadge.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            hideHoverPreview();
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                            showImages(data[day], `${year}/${month}/${day}`);
+                        });
+                    }
+                    
+                    daysPreview.appendChild(dayBadge);
+                });
+                
+                card.appendChild(daysPreview);
+            }
+
+            // Klick-Handler nur für Karten mit Inhalt
+            if (hasContent) {
+                card.addEventListener('click', () => {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    showImages(allFiles, `${year}/${month}`);
+                });
+            }
+
+            footer.appendChild(header);
+            footer.appendChild(stats);
+            card.appendChild(footer);
+
+            return card;
+        }
+
+        function createMediaElement(file) {
+            let element;
+            
+            if (file.type === 'image') {
+                element = document.createElement('img');
+                element.src = `/media/${file.path}`;
+                element.alt = file.name;
+                element.loading = 'lazy';
+            } else if (file.type === 'video') {
+                element = document.createElement('video');
+                element.src = `/media/${file.path}`;
+                element.controls = false;
+                element.muted = true;
+                element.style.objectFit = 'cover';
+                // Zeige ersten Frame
+                element.addEventListener('loadeddata', () => {
+                    element.currentTime = 1;
+                });
+            } else if (file.type === 'audio') {
+                element = document.createElement('div');
+                element.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                element.style.color = 'white';
+                element.style.display = 'flex';
+                element.style.alignItems = 'center';
+                element.style.justifyContent = 'center';
+                element.style.fontSize = '2.5em';
+                element.style.cursor = 'pointer';
+                element.style.transition = 'all 0.3s ease';
+                element.innerHTML = '🎵';
+                
+                // Hover-Effekt
+                element.addEventListener('mouseenter', () => {
+                    element.style.transform = 'scale(1.1)';
+                    element.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.4)';
+                });
+                element.addEventListener('mouseleave', () => {
+                    element.style.transform = 'scale(1)';
+                    element.style.boxShadow = 'none';
+                });
+            } else {
+                element = document.createElement('div');
+                element.style.background = '#e2e8f0';
+                element.style.display = 'flex';
+                element.style.alignItems = 'center';
+                element.style.justifyContent = 'center';
+                element.style.fontSize = '2em';
+                element.innerHTML = '📄';
+            }
+            
+            return element;
+        }
+
+        function createImageGrid(images) {
+            const grid = document.createElement('div');
+            grid.className = 'image-grid';
+
+            images.forEach((image, index) => {
+                const card = document.createElement('div');
+                card.className = 'image-card';
+
+                const mediaElement = createMediaElement(image);
+                mediaElement.className = 'image-thumbnail';
+
+                const info = document.createElement('div');
+                info.className = 'image-info';
+
+                const name = document.createElement('div');
+                name.className = 'image-name';
+                name.textContent = image.name;
+
+                const size = document.createElement('div');
+                size.className = 'image-size';
+                size.textContent = formatFileSize(image.size);
+
+                info.appendChild(name);
+                info.appendChild(size);
+                card.appendChild(mediaElement);
+                card.appendChild(info);
+
+                card.addEventListener('click', () => openModal(images, index));
+                grid.appendChild(card);
+            });
+
+            return grid;
+        }
+
+        function showImages(files, title) {
+            const timeline = document.getElementById('timeline');
+            timeline.innerHTML = '';
+
+            const header = document.createElement('h2');
+            header.textContent = `📁 ${title} (${files.length} Dateien)`;
+            header.style.marginBottom = '20px';
+            header.style.color = '#4a5568';
+
+            const backBtn = document.createElement('button');
+            backBtn.className = 'btn btn-primary';
+            backBtn.textContent = '← Zurück';
+            backBtn.style.marginBottom = '20px';
+            backBtn.addEventListener('click', () => displayStructure(currentStructure));
+
+            const grid = createImageGrid(files);
+
+            timeline.appendChild(backBtn);
+            timeline.appendChild(header);
+            timeline.appendChild(grid);
+        }
+
+        function toggleYear(header, section) {
+            const monthsGrid = section.querySelector('.months-grid');
+            if (monthsGrid.style.display === 'none') {
+                monthsGrid.style.display = 'grid';
+                header.classList.remove('collapsed');
+            } else {
+                monthsGrid.style.display = 'none';
+                header.classList.add('collapsed');
+            }
+        }
+
+        function toggleCollapsible(header, section) {
+            const contentGrid = section.querySelector('.collapsible-content');
+            if (contentGrid.style.display === 'none') {
+                contentGrid.style.display = 'block';
+                header.classList.remove('collapsed');
+            } else {
+                contentGrid.style.display = 'none';
+                header.classList.add('collapsed');
+            }
+        }
+
+        function openModal(images, index) {
+            currentImages = images;
+            currentImageIndex = index;
+            
+            const modal = document.getElementById('imageModal');
+            const modalImage = document.getElementById('modalImage');
+            const modalVideo = document.getElementById('modalVideo');
+            const modalAudio = document.getElementById('modalAudio');
+            const audioPlayer = document.getElementById('audioPlayer');
+            const audioFileName = document.getElementById('audioFileName');
+            const audioDetails = document.getElementById('audioDetails');
+
+            const currentFile = images[index];
+
+            if (currentFile.type === 'image') {
+                modalImage.src = `/media/${currentFile.path}`;
+                modalImage.style.display = 'block';
+                modalVideo.style.display = 'none';
+                modalAudio.style.display = 'none';
+                audioPlayer.pause(); // Audio-Player stoppen
+                audioPlayer.src = ''; // Audio-Quelle löschen
+                audioFileName.textContent = '';
+                audioDetails.textContent = '';
+            } else if (currentFile.type === 'video') {
+                modalImage.style.display = 'none';
+                modalVideo.src = `/media/${currentFile.path}`;
+                modalVideo.style.display = 'block';
+                modalAudio.style.display = 'none';
+                audioPlayer.pause(); // Audio-Player stoppen
+                audioPlayer.src = ''; // Audio-Quelle löschen
+                audioFileName.textContent = '';
+                audioDetails.textContent = '';
+            } else if (currentFile.type === 'audio') {
+                modalImage.style.display = 'none';
+                modalVideo.style.display = 'none';
+                modalAudio.style.display = 'block';
+                audioPlayer.src = `/media/${currentFile.path}`;
+                audioPlayer.load(); // Audio-Quelle laden
+                audioFileName.textContent = currentFile.name;
+                audioDetails.textContent = `Größe: ${formatFileSize(currentFile.size)}`;
+                
+                // Automatisches Abspielen nur wenn gewünscht - erstmal nicht
+                // audioPlayer.play();
+            }
+
+            modal.style.display = 'block';
+            
+            updateModalNavigation();
+        }
+
+        function closeModal() {
+            document.getElementById('imageModal').style.display = 'none';
+            document.getElementById('modalImage').src = ''; // Bildquelle löschen
+            document.getElementById('modalVideo').src = ''; // Videoquelle löschen
+            document.getElementById('modalAudio').style.display = 'none'; // Audio-Element ausblenden
+            document.getElementById('audioPlayer').pause(); // Audio-Player stoppen
+            document.getElementById('audioPlayer').src = ''; // Audio-Quelle löschen
+            document.getElementById('audioFileName').textContent = '';
+            document.getElementById('audioDetails').textContent = '';
+        }
+
+        function showPrevImage() {
+            if (currentImageIndex > 0) {
+                currentImageIndex--;
+                openModal(currentImages, currentImageIndex);
+            }
+        }
+
+        function showNextImage() {
+            if (currentImageIndex < currentImages.length - 1) {
+                currentImageIndex++;
+                openModal(currentImages, currentImageIndex);
+            }
+        }
+
+        function updateModalNavigation() {
+            const prevBtn = document.getElementById('modalPrev');
+            const nextBtn = document.getElementById('modalNext');
+            
+            prevBtn.style.display = currentImageIndex > 0 ? 'block' : 'none';
+            nextBtn.style.display = currentImageIndex < currentImages.length - 1 ? 'block' : 'none';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('hidden');
+        }
+
+        function hideError() {
+            document.getElementById('errorMessage').classList.add('hidden');
+        }
+
+        function showLoading() {
+            document.getElementById('loading').textContent = 'Lade Medien...';
+            document.getElementById('timeline').classList.add('hidden');
+            document.getElementById('stats').classList.add('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        // Hover Preview Functions
+        let hoverPreviewTimeout;
+        let previewFiles = [];
+        let currentPreviewStartIndex = 0;
+        let allPreviewFiles = [];
+        let autoScrollInterval = null;
+        let isAutoScrolling = false;
+
+        function showHoverPreview(event, files, title) {
+            // Kleiner Delay um flickering zu vermeiden
+            clearTimeout(hoverPreviewTimeout);
+            hoverPreviewTimeout = setTimeout(() => {
+                // Alle Dateien speichern für Navigation
+                allPreviewFiles = [...files];
+                currentPreviewStartIndex = 0; // Zurück zum Anfang
+                
+                // Intelligente Dateiauswahl basierend auf Anzahl
+                const totalFiles = files.length;
+                let maxPreviewFiles;
+                
+                if (totalFiles === 1) {
+                    maxPreviewFiles = 1;
+                } else if (totalFiles <= 3) {
+                    maxPreviewFiles = totalFiles;
+                } else {
+                    maxPreviewFiles = 4;
+                }
+                
+                previewFiles = files.slice(currentPreviewStartIndex, currentPreviewStartIndex + maxPreviewFiles);
+                window.currentPreviewTotalFiles = totalFiles; // Gesamtanzahl merken
+                
+                const preview = document.getElementById('hoverPreview');
+                const header = document.getElementById('hoverPreviewHeader');
+                const counter = document.getElementById('hoverPreviewCounter');
+                
+                header.textContent = title;
+                if (totalFiles > 4) {
+                    counter.textContent = `1-${maxPreviewFiles} von ${totalFiles} Dateien (← → zum Navigieren)`;
+                } else {
+                    counter.textContent = `${totalFiles} ${totalFiles === 1 ? 'Datei' : 'Dateien'}`;
+                }
+                
+                // Grid mit optimaler Anzahl Dateien füllen
+                updatePreviewGrid();
+                
+                // Position relativ zum Element (geankert)
+                positionPreviewToElement(event.target);
+                
+                // Preview anzeigen
+                preview.classList.add('visible');
+                
+                // Falls Auto-Scroll aktiviert ist, aber nicht läuft, starte es
+                const autoScrollCheckbox = document.getElementById('autoScrollToggle');
+                if (autoScrollCheckbox.checked && !isAutoScrolling) {
+                    startAutoScroll();
+                }
+            }, 150); // Etwas kürzerer Delay für bessere Responsivität
+        }
+
+        function hideHoverPreview() {
+            clearTimeout(hoverPreviewTimeout);
+            
+            const preview = document.getElementById('hoverPreview');
+            preview.classList.remove('visible');
+            
+            // Reset navigation
+            currentPreviewStartIndex = 0;
+            allPreviewFiles = [];
+            
+            // Auto-Scroll NICHT stoppen - läuft weiter für nächste Preview
+        }
+
+        function showPrevPreview() {
+            if (currentPreviewStartIndex > 0) {
+                currentPreviewStartIndex = Math.max(0, currentPreviewStartIndex - 4);
+                updatePreviewFromNavigation();
+            }
+        }
+
+        function showNextPreview() {
+            if (currentPreviewStartIndex + 4 < allPreviewFiles.length) {
+                currentPreviewStartIndex = Math.min(allPreviewFiles.length - 4, currentPreviewStartIndex + 4);
+                updatePreviewFromNavigation();
+            }
+        }
+
+        function updatePreviewFromNavigation() {
+            const totalFiles = allPreviewFiles.length;
+            let maxPreviewFiles;
+            
+            if (totalFiles === 1) {
+                maxPreviewFiles = 1;
+            } else if (totalFiles <= 3) {
+                maxPreviewFiles = totalFiles;
+            } else {
+                maxPreviewFiles = 4;
+            }
+            
+            previewFiles = allPreviewFiles.slice(currentPreviewStartIndex, currentPreviewStartIndex + maxPreviewFiles);
+            
+            // Update counter to show current position
+            const counter = document.getElementById('hoverPreviewCounter');
+            const startPos = currentPreviewStartIndex + 1;
+            const endPos = Math.min(currentPreviewStartIndex + maxPreviewFiles, totalFiles);
+            counter.textContent = `${startPos}-${endPos} von ${totalFiles} Dateien (← → zum Navigieren)`;
+            
+            updatePreviewGrid();
+        }
+
+
+
+        function startAutoScroll() {
+            // Stoppe bereits laufenden Auto-Scroll, falls vorhanden
+            if (autoScrollInterval) {
+                clearInterval(autoScrollInterval);
+                autoScrollInterval = null;
+            }
+            
+            isAutoScrolling = true;
+            
+            // Alle 2 Sekunden zur nächsten Gruppe
+            autoScrollInterval = setInterval(() => {
+                // Prüfe ob Preview noch aktiv ist und mehr als 4 Dateien hat
+                const preview = document.getElementById('hoverPreview');
+                if (!preview.classList.contains('visible') || allPreviewFiles.length <= 4) {
+                    return; // Kein Auto-Scroll möglich
+                }
+                
+                if (currentPreviewStartIndex + 4 < allPreviewFiles.length) {
+                    showNextPreview();
+                } else {
+                    // Zurück zum Anfang
+                    currentPreviewStartIndex = 0;
+                    updatePreviewFromNavigation();
+                }
+            }, 2000);
+        }
+
+        function stopAutoScroll() {
+            if (autoScrollInterval) {
+                clearInterval(autoScrollInterval);
+                autoScrollInterval = null;
+            }
+            isAutoScrolling = false;
+        }
+
+        function positionPreviewToElement(element) {
+            const preview = document.getElementById('hoverPreview');
+            const elementRect = element.getBoundingClientRect();
+            
+            const offset = 15;
+            
+            // Einfache Position: unter dem Element
+            let x = elementRect.left;
+            let y = elementRect.bottom + offset;
+            
+            // Positionierung relativ zum scrollenden Container
+            const container = document.querySelector('.container');
+            const containerRect = container.getBoundingClientRect();
+            
+            preview.style.left = (x - containerRect.left) + 'px';
+            preview.style.top = (y - containerRect.top + container.scrollTop) + 'px';
+        }
+
+        function updatePreviewGrid() {
+            const grid = document.getElementById('hoverPreviewGrid');
+            grid.innerHTML = '';
+            
+            // Sortiere Dateien: Bilder zuerst, dann Videos, dann Audio
+            const sortedFiles = [...previewFiles].sort((a, b) => {
+                const typeOrder = { 'image': 1, 'video': 2, 'audio': 3 };
+                return (typeOrder[a.type] || 4) - (typeOrder[b.type] || 4);
+            });
+            
+            // Bestimme Anzahl der anzuzeigenden Dateien basierend auf Gesamtanzahl
+            const totalFiles = window.currentPreviewTotalFiles || previewFiles.length;
+            let displayCount, gridClass;
+            
+            if (totalFiles === 1) {
+                displayCount = 1;
+                gridClass = 'single';
+            } else if (totalFiles === 2) {
+                displayCount = 2;
+                gridClass = 'double';
+            } else if (totalFiles === 3) {
+                displayCount = 3;
+                gridClass = 'triple';
+            } else {
+                displayCount = 4;
+                gridClass = 'quad';
+            }
+            
+            // Setze Grid-Klasse
+            grid.className = `hover-preview-grid ${gridClass}`;
+            
+            // Zeige entsprechende Anzahl Dateien
+            const displayFiles = sortedFiles.slice(0, displayCount);
+            
+            displayFiles.forEach((file, index) => {
+                const item = document.createElement('div');
+                item.className = 'hover-preview-item';
+                
+                if (file.type === 'image') {
+                    const img = document.createElement('img');
+                    img.src = `/media/${file.path}`;
+                    img.alt = file.name;
+                    img.loading = 'eager'; // Sofortiges Laden für Preview
+                    item.appendChild(img);
+                } else if (file.type === 'video') {
+                    const video = document.createElement('video');
+                    video.src = `/media/${file.path}`;
+                    video.muted = true;
+                    video.preload = 'metadata';
+                    video.style.objectFit = 'cover';
+                    // Zeige ersten Frame
+                    video.addEventListener('loadeddata', () => {
+                        video.currentTime = 1;
+                    });
+                    item.appendChild(video);
+                } else if (file.type === 'audio') {
+                    const icon = document.createElement('div');
+                    icon.className = 'media-icon';
+                    icon.innerHTML = '🎵';
+                    item.appendChild(icon);
+                } else {
+                    const icon = document.createElement('div');
+                    icon.className = 'media-icon';
+                    icon.innerHTML = '📄';
+                    item.appendChild(icon);
+                }
+                
+                grid.appendChild(item);
+            });
+            
+            // Zeige "+X mehr" nur wenn mehr Dateien vorhanden sind als angezeigt
+            if (totalFiles > displayCount) {
+                const lastItem = grid.lastChild;
+                if (lastItem) {
+                    const moreOverlay = document.createElement('div');
+                    moreOverlay.className = 'hover-preview-more';
+                    moreOverlay.textContent = `+${totalFiles - displayCount}`;
+                    lastItem.appendChild(moreOverlay);
+                }
+            }
+        }
+    </script>
+</body>
+</html> 
