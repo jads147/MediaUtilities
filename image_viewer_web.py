@@ -13,6 +13,9 @@ import webbrowser
 import threading
 import time
 import sys
+import io
+import exifread
+from PIL import Image
 
 def get_resource_path(relative_path):
     """Ermittelt den korrekten Pfad zu Ressourcen sowohl für normale Python-Ausführung als auch für exe-Dateien"""
@@ -33,9 +36,10 @@ class ImageViewer:
     def __init__(self, base_path: str):
         self.base_path = Path(base_path)
         self.image_formats = {'.jpg', '.jpeg', '.png', '.tiff', '.tif', '.bmp', '.gif', '.webp'}
+        self.raw_formats = {'.cr2', '.cr3', '.crw', '.nef', '.arw', '.dng', '.raf', '.orf', '.rw2', '.pef', '.srw', '.raw'}
         self.video_formats = {'.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm', '.m4v', '.3gp', '.mpg', '.mpeg'}
         self.audio_formats = {'.mp3', '.wav', '.flac', '.aac', '.ogg', '.m4a', '.wma', '.opus', '.aiff', '.alac'}
-        self.supported_formats = self.image_formats | self.video_formats | self.audio_formats
+        self.supported_formats = self.image_formats | self.raw_formats | self.video_formats | self.audio_formats
     
     def scan_directory(self):
         """Scannt das Verzeichnis und erstellt eine Struktur"""
@@ -111,7 +115,7 @@ class ImageViewer:
             if file.is_file() and file.suffix.lower() in self.supported_formats:
                 # Bestimme Medientyp
                 suffix = file.suffix.lower()
-                if suffix in self.image_formats:
+                if suffix in self.image_formats or suffix in self.raw_formats:
                     media_type = "image"
                 elif suffix in self.video_formats:
                     media_type = "video"
@@ -162,16 +166,56 @@ def set_directory():
     viewer = ImageViewer(directory)
     return jsonify({'success': True})
 
+def extract_raw_thumbnail(file_path):
+    """Extrahiert eingebettetes JPEG-Vorschaubild aus RAW-Datei"""
+    try:
+        with open(file_path, 'rb') as f:
+            tags = exifread.process_file(f, details=False)
+
+            # Versuche JPEGInterchangeFormat (eingebettetes JPEG)
+            if 'JPEGThumbnail' in tags:
+                return tags['JPEGThumbnail']
+
+            # Alternative: Suche nach JPEG-Markern im File
+            f.seek(0)
+            data = f.read()
+
+            # Suche nach JPEG SOI (Start of Image) Marker
+            jpeg_start = data.find(b'\xff\xd8\xff')
+            if jpeg_start > 0:
+                # Suche nach JPEG EOI (End of Image) Marker
+                jpeg_end = data.find(b'\xff\xd9', jpeg_start)
+                if jpeg_end > jpeg_start:
+                    return data[jpeg_start:jpeg_end + 2]
+    except Exception:
+        pass
+    return None
+
 @app.route('/media/<path:media_path>')
 def serve_media(media_path):
-    """Liefert Medien aus"""
+    """Liefert Medien aus (RAW zeigt eingebettete Vorschau)"""
     if not viewer:
         return "Kein Verzeichnis gesetzt", 400
-    
+
     full_path = viewer.base_path / media_path
     if not full_path.exists():
         return "Datei nicht gefunden", 404
-    
+
+    # RAW-Dateien: eingebettetes JPEG-Vorschaubild extrahieren
+    suffix = full_path.suffix.lower()
+    if suffix in viewer.raw_formats:
+        thumbnail_data = extract_raw_thumbnail(str(full_path))
+        if thumbnail_data:
+            img_io = io.BytesIO(thumbnail_data)
+            return send_file(img_io, mimetype='image/jpeg')
+        else:
+            # Fallback: Placeholder-Bild generieren
+            img = Image.new('RGB', (400, 300), color=(50, 50, 50))
+            img_io = io.BytesIO()
+            img.save(img_io, 'JPEG')
+            img_io.seek(0)
+            return send_file(img_io, mimetype='image/jpeg')
+
     return send_file(full_path)
 
 @app.route('/api/media_info/<path:media_path>')
@@ -188,7 +232,7 @@ def get_media_info(media_path):
     
     # Bestimme Medientyp
     suffix = full_path.suffix.lower()
-    if suffix in viewer.image_formats:
+    if suffix in viewer.image_formats or suffix in viewer.raw_formats:
         media_type = "image"
     elif suffix in viewer.video_formats:
         media_type = "video"

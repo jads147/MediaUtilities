@@ -16,6 +16,7 @@ from typing import Optional, Dict, Set, List, Tuple
 import logging
 from PIL import Image
 from PIL.ExifTags import TAGS
+import exifread
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import tkinter.font as tkFont
@@ -110,67 +111,77 @@ class ImageSorterGUI:
         ttk.Label(options_frame, text="Medientypen:", font=('Arial', 9, 'bold')).grid(row=0, column=0, sticky=tk.W, pady=(0, 5))
         
         self.process_images = tk.BooleanVar(value=True)
+        self.process_raw = tk.BooleanVar(value=False)
         self.process_videos = tk.BooleanVar(value=False)
         self.process_audio = tk.BooleanVar(value=False)
-        
-        ttk.Checkbutton(options_frame, text="Bilder (JPG, PNG, TIFF, BMP, GIF, WEBP)", 
+
+        ttk.Checkbutton(options_frame, text="Bilder (JPG, PNG, TIFF, BMP, GIF, WEBP)",
                        variable=self.process_images).grid(row=1, column=0, sticky=tk.W, pady=2, padx=(20, 0))
-        ttk.Checkbutton(options_frame, text="Videos (MP4, AVI, MOV, MKV, WMV, FLV, WEBM)", 
-                       variable=self.process_videos).grid(row=2, column=0, sticky=tk.W, pady=2, padx=(20, 0))
-        ttk.Checkbutton(options_frame, text="Audio (MP3, WAV, FLAC, AAC, OGG, M4A, WMA)", 
-                       variable=self.process_audio).grid(row=3, column=0, sticky=tk.W, pady=2, padx=(20, 0))
-        
+        ttk.Checkbutton(options_frame, text="RAW (CR2, CR3, CRW, NEF, ARW, DNG, RAF, ORF, RW2, PEF, SRW)",
+                       variable=self.process_raw).grid(row=2, column=0, sticky=tk.W, pady=2, padx=(20, 0))
+        ttk.Checkbutton(options_frame, text="Videos (MP4, AVI, MOV, MKV, WMV, FLV, WEBM)",
+                       variable=self.process_videos).grid(row=3, column=0, sticky=tk.W, pady=2, padx=(20, 0))
+        ttk.Checkbutton(options_frame, text="Audio (MP3, WAV, FLAC, AAC, OGG, M4A, WMA)",
+                       variable=self.process_audio).grid(row=4, column=0, sticky=tk.W, pady=2, padx=(20, 0))
+
+        # Nur bestimmte Endungen (Debug/Nachholen)
+        self.custom_extensions = tk.StringVar(value="")
+        ttk.Label(options_frame, text="Nur bestimmte Endungen (z.B. .crw, .thm):").grid(
+            row=5, column=0, sticky=tk.W, pady=2, padx=(20, 0))
+        ttk.Entry(options_frame, textvariable=self.custom_extensions, width=40).grid(
+            row=6, column=0, sticky=tk.W, pady=2, padx=(20, 0))
+
         # Trennlinie zwischen Medientypen und anderen Optionen
         separator = ttk.Separator(options_frame, orient='horizontal')
-        separator.grid(row=4, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=10)
-        
-        ttk.Checkbutton(options_frame, text="Testlauf (keine Dateien verschieben)", 
-                       variable=self.dry_run).grid(row=5, column=0, sticky=tk.W)
+        separator.grid(row=7, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=10)
+
+        ttk.Checkbutton(options_frame, text="Testlauf (keine Dateien verschieben)",
+                       variable=self.dry_run).grid(row=8, column=0, sticky=tk.W)
         
         # Hash-Datenbank Option
         self.use_hash_db = tk.BooleanVar(value=True)
-        ttk.Checkbutton(options_frame, text="Hash-Datenbank verwenden (für zukünftige Sortierungen)", 
-                       variable=self.use_hash_db).grid(row=6, column=0, columnspan=2, sticky=tk.W)
-        
+        ttk.Checkbutton(options_frame, text="Hash-Datenbank verwenden (für zukünftige Sortierungen)",
+                       variable=self.use_hash_db).grid(row=9, column=0, columnspan=2, sticky=tk.W)
+
         # Datumsvalidierung Option
         self.validate_dates = tk.BooleanVar(value=True)
-        ttk.Checkbutton(options_frame, text="Datumsvalidierung aktivieren", 
-                       variable=self.validate_dates).grid(row=7, column=0, sticky=tk.W)
-        
+        ttk.Checkbutton(options_frame, text="Datumsvalidierung aktivieren",
+                       variable=self.validate_dates).grid(row=10, column=0, sticky=tk.W)
+
         # Frühjahr-Jahr Einstellung
-        ttk.Label(options_frame, text="Frühstes gültiges Jahr:").grid(row=7, column=1, sticky=tk.W, padx=(20, 5))
-        year_spinbox = tk.Spinbox(options_frame, from_=1990, to=2030, width=8, 
-                                 textvariable=self.earliest_valid_year, 
+        ttk.Label(options_frame, text="Frühstes gültiges Jahr:").grid(row=10, column=1, sticky=tk.W, padx=(20, 5))
+        year_spinbox = tk.Spinbox(options_frame, from_=1990, to=2030, width=8,
+                                 textvariable=self.earliest_valid_year,
                                  state="normal" if self.validate_dates.get() else "disabled")
-        year_spinbox.grid(row=7, column=1, sticky=tk.W, padx=(150, 0))
-        
+        year_spinbox.grid(row=10, column=1, sticky=tk.W, padx=(150, 0))
+
         # Callback für Aktivierung/Deaktivierung des Spinbox
         def toggle_year_spinbox():
             year_spinbox.config(state="normal" if self.validate_dates.get() else "disabled")
-        
-        self.validate_dates.trace('w', lambda *args: toggle_year_spinbox())
-        
+
+        self.validate_dates.trace_add('write', lambda *args: toggle_year_spinbox())
+
         # Zweite Trennlinie zwischen allgemeinen Optionen und Duplikat-Optionen
         separator2 = ttk.Separator(options_frame, orient='horizontal')
-        separator2.grid(row=8, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=10)
-        
+        separator2.grid(row=11, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=10)
+
         # Duplikat-Behandlung Option
-        ttk.Label(options_frame, text="Duplikat-Behandlung:").grid(row=9, column=0, sticky=tk.W, pady=5)
+        ttk.Label(options_frame, text="Duplikat-Behandlung:").grid(row=12, column=0, sticky=tk.W, pady=5)
         self.duplicate_mode = tk.StringVar(value="verschieben")
-        duplicate_combo = ttk.Combobox(options_frame, textvariable=self.duplicate_mode, 
-                                     values=["aus", "verschieben", "ignorieren"], 
+        duplicate_combo = ttk.Combobox(options_frame, textvariable=self.duplicate_mode,
+                                     values=["aus", "verschieben", "ignorieren"],
                                      state="readonly", width=20)
-        duplicate_combo.grid(row=9, column=1, sticky=tk.W, padx=(10, 0), pady=5)
-        
+        duplicate_combo.grid(row=12, column=1, sticky=tk.W, padx=(10, 0), pady=5)
+
         # Turbo-Modus für Duplikaterkennung
         self.turbo_duplicate_detection = tk.BooleanVar(value=False)
-        ttk.Checkbutton(options_frame, text="🚀 Turbo-Modus (schnellere Duplikaterkennung)", 
-                       variable=self.turbo_duplicate_detection).grid(row=10, column=0, columnspan=2, sticky=tk.W)
-        
+        ttk.Checkbutton(options_frame, text="🚀 Turbo-Modus (schnellere Duplikaterkennung)",
+                       variable=self.turbo_duplicate_detection).grid(row=13, column=0, columnspan=2, sticky=tk.W)
+
         # Tooltip-Label für Duplikat-Modi
         duplicate_info = tk.Label(options_frame, text="", fg="gray", font=("Arial", 8), wraplength=400)
-        duplicate_info.grid(row=11, column=0, columnspan=2, sticky=tk.W, pady=(0, 5))
-        
+        duplicate_info.grid(row=14, column=0, columnspan=2, sticky=tk.W, pady=(0, 5))
+
         def update_duplicate_info(*args):
             mode = self.duplicate_mode.get()
             if mode == "aus":
@@ -179,14 +190,14 @@ class ImageSorterGUI:
                 duplicate_info.config(text="Original wird sortiert, Duplikate → _duplicates/ Ordner")
             elif mode == "ignorieren":
                 duplicate_info.config(text="Original wird sortiert, Duplikate bleiben unberührt im Quellordner")
-        
-        self.duplicate_mode.trace('w', update_duplicate_info)
+
+        self.duplicate_mode.trace_add('write', update_duplicate_info)
         update_duplicate_info()  # Initial anzeigen
-        
+
         # Batch-Verarbeitung Option
         self.batch_processing = tk.BooleanVar(value=False)
-        ttk.Checkbutton(options_frame, text="Batch-Verarbeitung (1000 Dateien pro Durchgang für große Sammlungen)", 
-                       variable=self.batch_processing).grid(row=12, column=0, columnspan=2, sticky=tk.W)
+        ttk.Checkbutton(options_frame, text="Batch-Verarbeitung (1000 Dateien pro Durchgang für große Sammlungen)",
+                       variable=self.batch_processing).grid(row=15, column=0, columnspan=2, sticky=tk.W)
         
         # Buttons
         button_frame = ttk.Frame(main_frame)
@@ -291,9 +302,11 @@ class ImageSorterGUI:
             messagebox.showerror("Fehler", "Quell- und Zielordner müssen unterschiedlich sein!")
             return False
         
-        # Prüfe ob mindestens ein Medientyp ausgewählt ist
-        if not (self.process_images.get() or self.process_videos.get() or self.process_audio.get()):
-            messagebox.showerror("Fehler", "Bitte mindestens einen Medientyp auswählen!")
+        # Prüfe ob mindestens ein Medientyp ausgewählt ist oder custom extensions gesetzt
+        has_custom = self.custom_extensions.get().strip() != ""
+        has_checkbox = self.process_images.get() or self.process_raw.get() or self.process_videos.get() or self.process_audio.get()
+        if not (has_custom or has_checkbox):
+            messagebox.showerror("Fehler", "Bitte mindestens einen Medientyp auswählen oder bestimmte Endungen angeben!")
             return False
         
         return True
@@ -342,9 +355,11 @@ class ImageSorterGUI:
                 logger=self.logger,
                 gui_callback=self.update_progress,
                 process_images=self.process_images.get(),
+                process_raw=self.process_raw.get(),
                 process_videos=self.process_videos.get(),
                 process_audio=self.process_audio.get(),
-                turbo_duplicate_detection=self.turbo_duplicate_detection.get()
+                turbo_duplicate_detection=self.turbo_duplicate_detection.get(),
+                custom_extensions=self.custom_extensions.get()
             )
             
             # Status synchronisieren
@@ -448,15 +463,16 @@ class ImageSorter:
     
     # Unterstützte Medienformate
     IMAGE_FORMATS = {'.jpg', '.jpeg', '.png', '.tiff', '.tif', '.bmp', '.gif', '.webp'}
+    RAW_FORMATS = {'.cr2', '.cr3', '.crw', '.nef', '.arw', '.dng', '.raf', '.orf', '.rw2', '.pef', '.srw', '.raw'}
     VIDEO_FORMATS = {'.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm', '.m4v', '.3gp', '.mpg', '.mpeg'}
     AUDIO_FORMATS = {'.mp3', '.wav', '.flac', '.aac', '.ogg', '.m4a', '.wma', '.opus', '.aiff', '.alac'}
     
-    def __init__(self, source_dir: str, target_dir: str, copy_mode: bool = False, 
+    def __init__(self, source_dir: str, target_dir: str, copy_mode: bool = False,
                  sort_by_day: bool = False, dry_run: bool = False, use_hash_db: bool = True,
-                 validate_dates: bool = True, earliest_valid_year: int = 2004, handle_duplicates: bool = True, 
+                 validate_dates: bool = True, earliest_valid_year: int = 2004, handle_duplicates: bool = True,
                  ignore_duplicates: bool = False, batch_processing: bool = False, logger=None, gui_callback=None,
-                 process_images: bool = True, process_videos: bool = False, process_audio: bool = False,
-                 turbo_duplicate_detection: bool = False):
+                 process_images: bool = True, process_raw: bool = False, process_videos: bool = False,
+                 process_audio: bool = False, turbo_duplicate_detection: bool = False, custom_extensions: str = ""):
         self.source_dir = Path(source_dir)
         self.target_dir = Path(target_dir)
         self.copy_mode = copy_mode
@@ -475,6 +491,7 @@ class ImageSorter:
         
         # Medientyp-Optionen
         self.process_images = process_images
+        self.process_raw = process_raw
         self.process_videos = process_videos
         self.process_audio = process_audio
         
@@ -500,12 +517,27 @@ class ImageSorter:
         
         # Kombiniere alle gewählten Formate
         self.supported_formats = set()
-        if self.process_images:
-            self.supported_formats.update(self.IMAGE_FORMATS)
-        if self.process_videos:
-            self.supported_formats.update(self.VIDEO_FORMATS)
-        if self.process_audio:
-            self.supported_formats.update(self.AUDIO_FORMATS)
+
+        # Custom Extensions überschreiben die Checkboxen
+        if custom_extensions and custom_extensions.strip():
+            # Parse custom extensions (z.B. ".crw, .thm" oder ".crw .thm")
+            for ext in custom_extensions.replace(',', ' ').split():
+                ext = ext.strip().lower()
+                if ext and not ext.startswith('.'):
+                    ext = '.' + ext
+                if ext:
+                    self.supported_formats.add(ext)
+            self.logger.info(f"Nur bestimmte Endungen: {', '.join(sorted(self.supported_formats))}")
+        else:
+            # Normale Checkbox-Logik
+            if self.process_images:
+                self.supported_formats.update(self.IMAGE_FORMATS)
+            if self.process_raw:
+                self.supported_formats.update(self.RAW_FORMATS)
+            if self.process_videos:
+                self.supported_formats.update(self.VIDEO_FORMATS)
+            if self.process_audio:
+                self.supported_formats.update(self.AUDIO_FORMATS)
         
         # Regex patterns für Datum im Dateinamen
         self.date_patterns = [
@@ -606,7 +638,7 @@ class ImageSorter:
         """Bestimmt den Medientyp basierend auf der Dateiendung"""
         suffix = file_path.suffix.lower()
         
-        if suffix in self.IMAGE_FORMATS:
+        if suffix in self.IMAGE_FORMATS or suffix in self.RAW_FORMATS:
             return "IMAGE"
         elif suffix in self.VIDEO_FORMATS:
             return "VIDEO"
@@ -765,10 +797,29 @@ class ImageSorter:
                     hash_md5.update(chunk)
     
     def get_exif_date(self, file_path: Path) -> Optional[datetime]:
-        """Extrahiert Aufnahmedatum aus EXIF-Daten (nur für Bilder)"""
-        if file_path.suffix.lower() not in self.IMAGE_FORMATS:
+        """Extrahiert Aufnahmedatum aus EXIF-Daten (für Bilder und RAW-Dateien)"""
+        suffix = file_path.suffix.lower()
+
+        # Prüfe ob es ein Bild oder RAW-Format ist
+        if suffix not in self.IMAGE_FORMATS and suffix not in self.RAW_FORMATS:
             return None
-            
+
+        # Für RAW-Dateien: exifread verwenden
+        if suffix in self.RAW_FORMATS:
+            try:
+                with open(file_path, 'rb') as f:
+                    tags = exifread.process_file(f, details=False)
+                    for tag_name in ['EXIF DateTimeOriginal', 'EXIF DateTimeDigitized', 'Image DateTime']:
+                        if tag_name in tags:
+                            try:
+                                return datetime.strptime(str(tags[tag_name]), '%Y:%m:%d %H:%M:%S')
+                            except ValueError:
+                                continue
+            except Exception as e:
+                self.logger.debug(f"Keine EXIF-Daten für RAW {file_path}: {e}")
+            return None
+
+        # Für normale Bilder: PIL verwenden
         try:
             with Image.open(file_path) as img:
                 exif_data = img._getexif()
@@ -1557,6 +1608,8 @@ class ImageSorter:
         selected_types = []
         if self.process_images:
             selected_types.append("Bilder")
+        if self.process_raw:
+            selected_types.append("RAW")
         if self.process_videos:
             selected_types.append("Videos")
         if self.process_audio:

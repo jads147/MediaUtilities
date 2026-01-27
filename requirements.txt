@@ -1,3 +1,4 @@
 Pillow>=9.0.0
 tkinter
-opencv-python>=4.5.0 
+opencv-python>=4.5.0
+exifread>=3.0.0 
