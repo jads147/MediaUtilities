@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media Swiper</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 100vw;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 10px 0 15px;
+        }
+
+        .header h1 {
+            font-size: 1.6rem;
+            font-weight: 300;
+            letter-spacing: 2px;
+            color: #e94560;
+        }
+
+        /* Setup Section */
+        .setup-section {
+            max-width: 600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .folder-select {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .folder-input {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 30px;
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .folder-input:focus {
+            border-color: #e94560;
+            background: rgba(255,255,255,0.1);
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #e94560, #c73659);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(233, 69, 96, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Settings Panel */
+        .settings-panel {
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            cursor: pointer;
+        }
+
+        .settings-header h3 {
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.8;
+        }
+
+        .settings-toggle {
+            font-size: 12px;
+            opacity: 0.6;
+        }
+
+        .settings-content {
+            display: grid;
+            gap: 15px;
+        }
+
+        .settings-content.collapsed {
+            display: none;
+        }
+
+        .settings-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .settings-group-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.6;
+            margin-bottom: 5px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 15px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .checkbox-item:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .checkbox-item input {
+            width: 16px;
+            height: 16px;
+            accent-color: #e94560;
+        }
+
+        .checkbox-item label {
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .radio-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .radio-item {
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.05);
+            border: 2px solid transparent;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 13px;
+        }
+
+        .radio-item:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .radio-item.active {
+            border-color: #e94560;
+            background: rgba(233, 69, 96, 0.2);
+        }
+
+        /* Session Info */
+        .session-info {
+            background: rgba(74, 222, 128, 0.1);
+            border: 1px solid rgba(74, 222, 128, 0.3);
+            border-radius: 10px;
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+
+        .session-info.warning {
+            background: rgba(251, 191, 36, 0.1);
+            border-color: rgba(251, 191, 36, 0.3);
+        }
+
+        /* Stats Bar */
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 15px;
+            padding: 12px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.7;
+        }
+
+        .stat-kept .stat-value { color: #4ade80; }
+        .stat-trashed .stat-value { color: #f87171; }
+        .stat-remaining .stat-value { color: #60a5fa; }
+        .stat-skipped .stat-value { color: #fbbf24; }
+
+        /* Progress Bar */
+        .progress-container {
+            max-width: 500px;
+            margin: 0 auto 15px;
+            width: 100%;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #e94560, #4ade80);
+            transition: width 0.3s;
+        }
+
+        .progress-text {
+            text-align: center;
+            margin-top: 8px;
+            font-size: 12px;
+            opacity: 0.7;
+        }
+
+        /* Card Container */
+        .card-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            min-height: 300px;
+        }
+
+        /* Media Card */
+        .media-card {
+            width: min(90vw, 550px);
+            height: min(60vh, 450px);
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+            cursor: grab;
+            transition: transform 0.1s;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+        }
+
+        .media-card:active {
+            cursor: grabbing;
+        }
+
+        .media-card.swiping-left {
+            animation: swipeLeft 0.4s ease-out forwards;
+        }
+
+        .media-card.swiping-right {
+            animation: swipeRight 0.4s ease-out forwards;
+        }
+
+        @keyframes swipeLeft {
+            to {
+                transform: translateX(-150%) rotate(-30deg);
+                opacity: 0;
+            }
+        }
+
+        @keyframes swipeRight {
+            to {
+                transform: translateX(150%) rotate(30deg);
+                opacity: 0;
+            }
+        }
+
+        .media-card.entering {
+            animation: cardEnter 0.3s ease-out forwards;
+        }
+
+        @keyframes cardEnter {
+            from {
+                transform: scale(0.8) translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* Media Content */
+        .media-content {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+        }
+
+        .media-content img,
+        .media-content video {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .media-content audio {
+            width: 80%;
+        }
+
+        .audio-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #2d1f3d 0%, #1a1a2e 100%);
+        }
+
+        .audio-icon {
+            font-size: 80px;
+        }
+
+        /* File Info Overlay */
+        .file-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 15px;
+            background: linear-gradient(transparent, rgba(0,0,0,0.9));
+        }
+
+        .filename {
+            font-size: 14px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 4px;
+        }
+
+        .file-meta {
+            font-size: 11px;
+            opacity: 0.7;
+            display: flex;
+            gap: 15px;
+        }
+
+        /* Action Indicators */
+        .action-indicator {
+            position: absolute;
+            top: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+        }
+
+        .indicator-keep {
+            right: 20px;
+            background: rgba(74, 222, 128, 0.9);
+            color: #000;
+            border: 3px solid #4ade80;
+        }
+
+        .indicator-trash {
+            left: 20px;
+            background: rgba(248, 113, 113, 0.9);
+            color: #000;
+            border: 3px solid #f87171;
+        }
+
+        .media-card.hint-right .indicator-keep,
+        .media-card.hint-left .indicator-trash {
+            opacity: 1;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            padding: 15px;
+        }
+
+        .action-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            transition: all 0.3s;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .btn-trash {
+            background: linear-gradient(135deg, #f87171, #dc2626);
+        }
+
+        .btn-undo {
+            background: linear-gradient(135deg, #fbbf24, #d97706);
+            width: 50px;
+            height: 50px;
+            font-size: 18px;
+        }
+
+        .btn-keep {
+            background: linear-gradient(135deg, #4ade80, #16a34a);
+        }
+
+        .action-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .action-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Keyboard Hints */
+        .keyboard-hints {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            padding: 8px;
+            opacity: 0.5;
+            font-size: 11px;
+        }
+
+        .key {
+            display: inline-block;
+            padding: 3px 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            font-family: monospace;
+            margin: 0 2px;
+        }
+
+        /* Done Screen */
+        .done-screen {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .done-screen h2 {
+            font-size: 2rem;
+            margin-bottom: 15px;
+            color: #4ade80;
+        }
+
+        .done-stats {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin: 25px 0;
+        }
+
+        .done-stat {
+            text-align: center;
+        }
+
+        .done-stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+
+        .done-stat-label {
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+
+        /* Hidden */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255,255,255,0.1);
+            border-top-color: #e94560;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Log Panel */
+        .log-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: all 0.3s;
+        }
+
+        .log-toggle:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .log-panel {
+            position: fixed;
+            bottom: 70px;
+            right: 20px;
+            width: 300px;
+            max-height: 400px;
+            background: rgba(26, 26, 46, 0.95);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            transform: translateY(20px);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s;
+        }
+
+        .log-panel.visible {
+            transform: translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .log-header {
+            padding: 12px 15px;
+            background: rgba(255,255,255,0.05);
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .log-content {
+            max-height: 350px;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .log-entry {
+            padding: 8px 10px;
+            margin-bottom: 5px;
+            border-radius: 8px;
+            font-size: 11px;
+            background: rgba(255,255,255,0.03);
+        }
+
+        .log-entry.keep {
+            border-left: 3px solid #4ade80;
+        }
+
+        .log-entry.trash {
+            border-left: 3px solid #f87171;
+        }
+
+        .log-entry-file {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .log-entry-time {
+            opacity: 0.5;
+            font-size: 10px;
+            margin-top: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>MEDIA SWIPER</h1>
+        </div>
+
+        <!-- Setup Section -->
+        <div class="setup-section" id="setupSection">
+            <!-- Folder Selection -->
+            <div class="folder-select">
+                <input type="text" class="folder-input" id="folderInput"
+                       placeholder="Ordnerpfad eingeben (z.B. C:\Users\Pictures)">
+                <button class="btn btn-primary" id="startBtn">Start</button>
+                <button class="btn" style="background: #333; padding: 12px 15px;" id="debugBtn" title="Debug">🔍</button>
+            </div>
+
+            <!-- Session Info (shown if resuming) -->
+            <div class="session-info hidden" id="sessionInfo">
+                <span id="sessionInfoText"></span>
+            </div>
+
+            <!-- Settings Panel -->
+            <div class="settings-panel">
+                <div class="settings-header" onclick="toggleSettings()">
+                    <h3>Einstellungen</h3>
+                    <span class="settings-toggle" id="settingsToggle">▼ Erweitern</span>
+                </div>
+                <div class="settings-content collapsed" id="settingsContent">
+                    <!-- Media Types -->
+                    <div class="settings-group">
+                        <div class="settings-group-title">Medientypen</div>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="includeImages" checked>
+                                <label for="includeImages">Bilder</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="includeRaw" checked>
+                                <label for="includeRaw">RAW</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="includeVideo" checked>
+                                <label for="includeVideo">Video</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="includeAudio" checked>
+                                <label for="includeAudio">Audio</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sort Order -->
+                    <div class="settings-group">
+                        <div class="settings-group-title">Sortierung</div>
+                        <div class="radio-group" id="sortOrder">
+                            <div class="radio-item active" data-value="oldest">Älteste zuerst</div>
+                            <div class="radio-item" data-value="newest">Neueste zuerst</div>
+                            <div class="radio-item" data-value="name">Nach Name</div>
+                            <div class="radio-item" data-value="random">Zufällig</div>
+                        </div>
+                    </div>
+
+                    <!-- Options -->
+                    <div class="settings-group">
+                        <div class="settings-group-title">Optionen</div>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="recursive" checked>
+                                <label for="recursive">Unterordner einschließen</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="skipSwiped" checked>
+                                <label for="skipSwiped">Bereits sortierte überspringen</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress -->
+        <div class="progress-container hidden" id="progressContainer">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+            </div>
+            <div class="progress-text" id="progressText">0 / 0</div>
+        </div>
+
+        <!-- Stats Bar -->
+        <div class="stats-bar hidden" id="statsBar">
+            <div class="stat stat-kept">
+                <div class="stat-value" id="statKept">0</div>
+                <div class="stat-label">Behalten</div>
+            </div>
+            <div class="stat stat-trashed">
+                <div class="stat-value" id="statTrashed">0</div>
+                <div class="stat-label">Aussortiert</div>
+            </div>
+            <div class="stat stat-remaining">
+                <div class="stat-value" id="statRemaining">0</div>
+                <div class="stat-label">Verbleibend</div>
+            </div>
+            <div class="stat stat-skipped hidden" id="statSkippedContainer">
+                <div class="stat-value" id="statSkipped">0</div>
+                <div class="stat-label">Bereits sortiert</div>
+            </div>
+        </div>
+
+        <!-- Card Container -->
+        <div class="card-container" id="cardContainer">
+            <div class="loading" id="loadingScreen">
+                <div class="spinner"></div>
+                <p>Wähle einen Ordner zum Starten</p>
+            </div>
+
+            <div class="media-card hidden" id="mediaCard">
+                <div class="action-indicator indicator-keep">BEHALTEN</div>
+                <div class="action-indicator indicator-trash">TRASH</div>
+                <div class="media-content" id="mediaContent"></div>
+                <div class="file-info">
+                    <div class="filename" id="filename"></div>
+                    <div class="file-meta">
+                        <span id="filePath"></span>
+                        <span id="fileSize"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="done-screen hidden" id="doneScreen">
+                <h2>Fertig!</h2>
+                <div class="done-stats">
+                    <div class="done-stat">
+                        <div class="done-stat-value" style="color: #4ade80" id="finalKept">0</div>
+                        <div class="done-stat-label">Behalten</div>
+                    </div>
+                    <div class="done-stat">
+                        <div class="done-stat-value" style="color: #f87171" id="finalTrashed">0</div>
+                        <div class="done-stat-label">Aussortiert</div>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="location.reload()">Neuer Ordner</button>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons hidden" id="actionButtons">
+            <button class="action-btn btn-trash" id="btnTrash" title="Trash (A / ←)">
+                🗑️
+            </button>
+            <button class="action-btn btn-undo" id="btnUndo" title="Undo (U / Ctrl+Z)">
+                ↩️
+            </button>
+            <button class="action-btn btn-keep" id="btnKeep" title="Keep (D / →)">
+                ✓
+            </button>
+        </div>
+
+        <!-- Keyboard Hints -->
+        <div class="keyboard-hints hidden" id="keyboardHints">
+            <span><span class="key">←</span> <span class="key">A</span> Trash</span>
+            <span><span class="key">U</span> Undo</span>
+            <span><span class="key">→</span> <span class="key">D</span> Keep</span>
+        </div>
+    </div>
+
+    <!-- Log Toggle Button -->
+    <button class="log-toggle hidden" id="logToggle" title="Session Log">📋</button>
+
+    <!-- Log Panel -->
+    <div class="log-panel" id="logPanel">
+        <div class="log-header">Session Log</div>
+        <div class="log-content" id="logContent"></div>
+    </div>
+
+    <script>
+        // State
+        let isProcessing = false;
+        let isDragging = false;
+        let startX = 0;
+        let currentX = 0;
+        let sessionLog = [];
+        let logVisible = false;
+
+        // Elements
+        const setupSection = document.getElementById('setupSection');
+        const folderInput = document.getElementById('folderInput');
+        const startBtn = document.getElementById('startBtn');
+        const sessionInfo = document.getElementById('sessionInfo');
+        const sessionInfoText = document.getElementById('sessionInfoText');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const statsBar = document.getElementById('statsBar');
+        const cardContainer = document.getElementById('cardContainer');
+        const mediaCard = document.getElementById('mediaCard');
+        const mediaContent = document.getElementById('mediaContent');
+        const filename = document.getElementById('filename');
+        const filePath = document.getElementById('filePath');
+        const fileSize = document.getElementById('fileSize');
+        const loadingScreen = document.getElementById('loadingScreen');
+        const doneScreen = document.getElementById('doneScreen');
+        const actionButtons = document.getElementById('actionButtons');
+        const keyboardHints = document.getElementById('keyboardHints');
+        const logToggle = document.getElementById('logToggle');
+        const logPanel = document.getElementById('logPanel');
+        const logContent = document.getElementById('logContent');
+
+        // Settings toggle
+        function toggleSettings() {
+            const content = document.getElementById('settingsContent');
+            const toggle = document.getElementById('settingsToggle');
+            content.classList.toggle('collapsed');
+            toggle.textContent = content.classList.contains('collapsed') ? '▼ Erweitern' : '▲ Einklappen';
+        }
+
+        // Radio group handling
+        document.querySelectorAll('.radio-group').forEach(group => {
+            group.querySelectorAll('.radio-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    group.querySelectorAll('.radio-item').forEach(i => i.classList.remove('active'));
+                    item.classList.add('active');
+                });
+            });
+        });
+
+        // Get current settings
+        function getSettings() {
+            return {
+                recursive: document.getElementById('recursive').checked,
+                skip_already_swiped: document.getElementById('skipSwiped').checked,
+                include_images: document.getElementById('includeImages').checked,
+                include_raw: document.getElementById('includeRaw').checked,
+                include_video: document.getElementById('includeVideo').checked,
+                include_audio: document.getElementById('includeAudio').checked,
+                sort_order: document.querySelector('#sortOrder .radio-item.active').dataset.value
+            };
+        }
+
+        // Init session
+        startBtn.addEventListener('click', initSession);
+        folderInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') initSession();
+        });
+
+        // Debug button
+        document.getElementById('debugBtn').addEventListener('click', async () => {
+            const folder = folderInput.value.trim();
+            if (!folder) {
+                alert('Bitte Ordnerpfad eingeben');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/debug', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ folder })
+                });
+
+                const data = await response.json();
+                console.log('Debug data:', data);
+
+                let msg = `DEBUG INFO\n${'='.repeat(40)}\n`;
+                msg += `Ordner: ${data.folder}\n`;
+                msg += `Erlaubte Formate: ${data.allowed_formats_count}\n`;
+                msg += `Rekursiv: ${data.settings?.recursive}\n`;
+                msg += `\nGefundene Items: ${data.total_items}\n`;
+
+                if (data.items && data.items.length > 0) {
+                    msg += `\nErste Einträge:\n`;
+                    data.items.slice(0, 15).forEach(item => {
+                        const marker = item.is_media ? '✓' : ' ';
+                        msg += `${marker} ${item.name} (${item.ext})\n`;
+                    });
+                }
+
+                if (data.media_found && data.media_found.length > 0) {
+                    msg += `\nMedien gefunden: ${data.media_found.length}\n`;
+                } else {
+                    msg += `\nKEINE MEDIEN GEFUNDEN!\n`;
+                    msg += `Prüfe ob Dateien mit diesen Endungen existieren:\n`;
+                    msg += `${(data.allowed_formats || []).slice(0, 10).join(', ')}...\n`;
+                }
+
+                if (data.error) {
+                    msg += `\nFEHLER: ${data.error}\n`;
+                }
+
+                alert(msg);
+            } catch (error) {
+                alert('Debug Fehler: ' + error.message);
+            }
+        });
+
+        async function initSession() {
+            const folder = folderInput.value.trim();
+            if (!folder) {
+                alert('Bitte Ordnerpfad eingeben');
+                return;
+            }
+
+            startBtn.disabled = true;
+            startBtn.textContent = 'Laden...';
+
+            try {
+                const response = await fetch('/api/init', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        folder,
+                        settings: getSettings()
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    alert('Fehler: ' + data.error);
+                    startBtn.disabled = false;
+                    startBtn.textContent = 'Start';
+                    return;
+                }
+
+                if (data.remaining === 0) {
+                    if (data.skipped > 0) {
+                        alert(`Alle ${data.total} Dateien wurden bereits sortiert.\n\nDeaktiviere "Bereits geswiped überspringen" in den Einstellungen um erneut zu sortieren.`);
+                    } else {
+                        alert('Keine Mediendateien im Ordner gefunden');
+                    }
+                    startBtn.disabled = false;
+                    startBtn.textContent = 'Start';
+                    return;
+                }
+
+                // Show resumed info
+                if (data.resumed && data.skipped > 0) {
+                    sessionInfo.classList.remove('hidden');
+                    sessionInfoText.textContent = `Session fortgesetzt: ${data.skipped} bereits sortiert, ${data.remaining} neu zu bearbeiten`;
+                }
+
+                // Show UI
+                setupSection.classList.add('hidden');
+                progressContainer.classList.remove('hidden');
+                statsBar.classList.remove('hidden');
+                actionButtons.classList.remove('hidden');
+                keyboardHints.classList.remove('hidden');
+                logToggle.classList.remove('hidden');
+                loadingScreen.classList.add('hidden');
+
+                // Show skipped stat if relevant
+                if (data.skipped > 0) {
+                    document.getElementById('statSkippedContainer').classList.remove('hidden');
+                    document.getElementById('statSkipped').textContent = data.skipped;
+                }
+
+                // Load first media
+                loadCurrentMedia();
+
+            } catch (error) {
+                alert('Verbindungsfehler: ' + error.message);
+                startBtn.disabled = false;
+                startBtn.textContent = 'Start';
+            }
+        }
+
+        async function loadCurrentMedia() {
+            try {
+                const response = await fetch('/api/current');
+                const data = await response.json();
+
+                if (data.done) {
+                    showDoneScreen(data.stats);
+                    return;
+                }
+
+                updateStats(data.stats, data.remaining, data.stats.total);
+                displayMedia(data);
+
+            } catch (error) {
+                console.error('Error loading media:', error);
+            }
+        }
+
+        function updateStats(stats, remaining, total) {
+            document.getElementById('statKept').textContent = stats.kept;
+            document.getElementById('statTrashed').textContent = stats.trashed;
+            document.getElementById('statRemaining').textContent = remaining;
+
+            const processed = stats.kept + stats.trashed;
+            const progress = (processed / total) * 100;
+            progressFill.style.width = progress + '%';
+            progressText.textContent = `${processed} / ${total}`;
+        }
+
+        function displayMedia(data) {
+            mediaCard.classList.remove('hidden');
+            mediaCard.classList.add('entering');
+            mediaCard.classList.remove('hint-left', 'hint-right');
+
+            setTimeout(() => mediaCard.classList.remove('entering'), 300);
+
+            filename.textContent = data.filename;
+            filePath.textContent = data.relative_path !== data.filename ? data.relative_path : '';
+            fileSize.textContent = data.file_size || '';
+
+            // Create appropriate media element
+            let html = '';
+            const mediaUrl = `/api/media/${encodeURIComponent(data.filepath)}`;
+
+            if (data.media_type === 'image' || data.media_type === 'raw') {
+                html = `<img src="${mediaUrl}" alt="${data.filename}" draggable="false">`;
+            } else if (data.media_type === 'video') {
+                html = `<video src="${mediaUrl}" controls autoplay muted loop></video>`;
+            } else if (data.media_type === 'audio') {
+                html = `
+                    <div class="audio-placeholder">
+                        <div class="audio-icon">🎵</div>
+                        <audio src="${mediaUrl}" controls autoplay></audio>
+                    </div>
+                `;
+            }
+
+            mediaContent.innerHTML = html;
+        }
+
+        function showDoneScreen(stats) {
+            mediaCard.classList.add('hidden');
+            actionButtons.classList.add('hidden');
+            keyboardHints.classList.add('hidden');
+            doneScreen.classList.remove('hidden');
+
+            document.getElementById('finalKept').textContent = stats.kept;
+            document.getElementById('finalTrashed').textContent = stats.trashed;
+        }
+
+        // Actions
+        async function performAction(action) {
+            if (isProcessing) return;
+            isProcessing = true;
+
+            // Animate card
+            mediaCard.classList.add(action === 'trash' ? 'swiping-left' : 'swiping-right');
+
+            // Send action to server
+            try {
+                const response = await fetch('/api/action', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    console.error('Action error:', data.error);
+                } else {
+                    // Add to local log
+                    addToLog(data.filename, action);
+                }
+
+                // Wait for animation
+                setTimeout(() => {
+                    mediaCard.classList.remove('swiping-left', 'swiping-right');
+                    loadCurrentMedia();
+                    isProcessing = false;
+                }, 400);
+
+            } catch (error) {
+                console.error('Error:', error);
+                isProcessing = false;
+            }
+        }
+
+        async function undoAction() {
+            if (isProcessing) return;
+            isProcessing = true;
+
+            try {
+                const response = await fetch('/api/undo', {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    console.error('Undo error:', data.error);
+                    isProcessing = false;
+                    return;
+                }
+
+                // Remove from local log
+                removeFromLog();
+                loadCurrentMedia();
+                isProcessing = false;
+
+            } catch (error) {
+                console.error('Error:', error);
+                isProcessing = false;
+            }
+        }
+
+        // Log functions
+        function addToLog(filename, action) {
+            sessionLog.push({ filename, action, time: new Date() });
+            updateLogPanel();
+        }
+
+        function removeFromLog() {
+            sessionLog.pop();
+            updateLogPanel();
+        }
+
+        function updateLogPanel() {
+            logContent.innerHTML = sessionLog.slice().reverse().map(entry => `
+                <div class="log-entry ${entry.action}">
+                    <div class="log-entry-file">${entry.action === 'keep' ? '✓' : '🗑️'} ${entry.filename}</div>
+                    <div class="log-entry-time">${entry.time.toLocaleTimeString()}</div>
+                </div>
+            `).join('');
+        }
+
+        // Log toggle
+        logToggle.addEventListener('click', () => {
+            logVisible = !logVisible;
+            logPanel.classList.toggle('visible', logVisible);
+        });
+
+        // Button handlers
+        document.getElementById('btnTrash').addEventListener('click', () => performAction('trash'));
+        document.getElementById('btnKeep').addEventListener('click', () => performAction('keep'));
+        document.getElementById('btnUndo').addEventListener('click', undoAction);
+
+        // Keyboard handlers
+        document.addEventListener('keydown', (e) => {
+            if (folderInput === document.activeElement) return;
+            if (setupSection && !setupSection.classList.contains('hidden')) return;
+
+            switch (e.key) {
+                case 'ArrowLeft':
+                case 'a':
+                case 'A':
+                    performAction('trash');
+                    break;
+                case 'ArrowRight':
+                case 'd':
+                case 'D':
+                    performAction('keep');
+                    break;
+                case 'u':
+                case 'U':
+                    undoAction();
+                    break;
+                case 'z':
+                    if (e.ctrlKey) undoAction();
+                    break;
+            }
+        });
+
+        // Touch/Mouse drag support
+        mediaCard.addEventListener('mousedown', startDrag);
+        mediaCard.addEventListener('touchstart', startDrag);
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('touchmove', drag);
+        document.addEventListener('mouseup', endDrag);
+        document.addEventListener('touchend', endDrag);
+
+        function startDrag(e) {
+            if (isProcessing) return;
+            isDragging = true;
+            startX = e.type === 'mousedown' ? e.clientX : e.touches[0].clientX;
+            mediaCard.style.transition = 'none';
+        }
+
+        function drag(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+
+            currentX = e.type === 'mousemove' ? e.clientX : e.touches[0].clientX;
+            const diff = currentX - startX;
+            const rotation = diff * 0.1;
+
+            mediaCard.style.transform = `translateX(${diff}px) rotate(${rotation}deg)`;
+
+            // Show indicators
+            if (diff > 50) {
+                mediaCard.classList.add('hint-right');
+                mediaCard.classList.remove('hint-left');
+            } else if (diff < -50) {
+                mediaCard.classList.add('hint-left');
+                mediaCard.classList.remove('hint-right');
+            } else {
+                mediaCard.classList.remove('hint-left', 'hint-right');
+            }
+        }
+
+        function endDrag() {
+            if (!isDragging) return;
+            isDragging = false;
+
+            mediaCard.style.transition = '';
+            mediaCard.style.transform = '';
+
+            const diff = currentX - startX;
+
+            if (diff > 100) {
+                performAction('keep');
+            } else if (diff < -100) {
+                performAction('trash');
+            }
+
+            mediaCard.classList.remove('hint-left', 'hint-right');
+        }
+    </script>
+</body>
+</html>
