@@ -108,6 +108,12 @@ This creates the following executables in `./dist/`:
 
 The application supports English and German. Language can be changed in each application's interface.
 
+## Support This Project
+
+If you find MediaUtils helpful, consider buying me a coffee:
+
+[![Donate](https://img.shields.io/badge/Donate-PayPal-blue.svg)](https://www.paypal.com/donate?business=callofbeauty247%40gmail.com&currency_code=EUR)
+
 ## License
 
 This project is provided as-is for personal use.
