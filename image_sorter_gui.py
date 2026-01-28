@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Bilder Sorter GUI - Grafische Benutzeroberfläche für den Bilder-Sortierer
+Media Sorter GUI - Graphical user interface for the media sorter
 """
 
 import tkinter as tk
@@ -21,10 +21,13 @@ import sqlite3
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import tkinter.font as tkFont
 
+# Import i18n
+from i18n import t, get_language, set_language, get_available_languages
+
 class ImageSorterGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("Medien Sorter - Automatische Sortierung für Bilder, Videos & Audio")
+        self.root.title(t("title_sorter"))
         self.root.geometry("1050x880")  # Optimiert für das neue Layout
         self.root.minsize(1000, 820)  # Mindestgröße für gute Lesbarkeit
         self.root.configure(bg='#f0f0f0')
@@ -53,80 +56,94 @@ class ImageSorterGUI:
         self.setup_logging()
         
     def setup_gui(self):
-        """Erstellt die GUI-Elemente"""
-        # Hauptframe
+        """Creates the GUI elements"""
+        # Main frame
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-        
-        # Titel
-        title_label = ttk.Label(main_frame, text="🎭 Medien Sorter", 
+
+        # Header with title and language selector
+        header_frame = ttk.Frame(main_frame)
+        header_frame.grid(row=0, column=0, columnspan=3, pady=(0, 20), sticky=(tk.W, tk.E))
+
+        # Title
+        title_label = ttk.Label(header_frame, text=t("sorter_title_short"),
                                font=('Arial', 16, 'bold'))
-        title_label.grid(row=0, column=0, columnspan=3, pady=(0, 20))
-        
-        # Quellordner
-        ttk.Label(main_frame, text="Quellordner (Medien):").grid(row=1, column=0, sticky=tk.W, pady=5)
+        title_label.pack(side=tk.LEFT)
+
+        # Language selector
+        lang_frame = ttk.Frame(header_frame)
+        lang_frame.pack(side=tk.RIGHT)
+        ttk.Label(lang_frame, text="🌐").pack(side=tk.LEFT)
+        self.language_var = tk.StringVar(value="English" if get_language() == "en" else "Deutsch")
+        lang_combo = ttk.Combobox(lang_frame, textvariable=self.language_var,
+                                  values=["English", "Deutsch"], width=10, state="readonly")
+        lang_combo.pack(side=tk.LEFT, padx=(5, 0))
+        lang_combo.bind("<<ComboboxSelected>>", self.on_language_change)
+
+        # Source folder
+        ttk.Label(main_frame, text=t("source_folder")).grid(row=1, column=0, sticky=tk.W, pady=5)
         ttk.Entry(main_frame, textvariable=self.source_dir, width=65).grid(row=1, column=1, padx=5, pady=5)
-        ttk.Button(main_frame, text="Durchsuchen", 
+        ttk.Button(main_frame, text=t("browse"),
                   command=self.browse_source).grid(row=1, column=2, pady=5)
-        
-        # Zielordner
-        ttk.Label(main_frame, text="Zielordner (Sortiert):").grid(row=2, column=0, sticky=tk.W, pady=5)
+
+        # Target folder
+        ttk.Label(main_frame, text=t("target_folder")).grid(row=2, column=0, sticky=tk.W, pady=5)
         ttk.Entry(main_frame, textvariable=self.target_dir, width=65).grid(row=2, column=1, padx=5, pady=5)
-        ttk.Button(main_frame, text="Durchsuchen", 
+        ttk.Button(main_frame, text=t("browse"),
                   command=self.browse_target).grid(row=2, column=2, pady=5)
         
-        # Modus und Sortierung nebeneinander
+        # Mode and sorting side by side
         mode_sort_frame = ttk.Frame(main_frame)
         mode_sort_frame.grid(row=3, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=10)
-        
-        # Modus-Sektion (links)
-        mode_frame = ttk.LabelFrame(mode_sort_frame, text="Modus", padding="10")
+
+        # Mode section (left)
+        mode_frame = ttk.LabelFrame(mode_sort_frame, text=t("mode"), padding="10")
         mode_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N), padx=(0, 5))
-        
-        # Radio buttons für Modus
-        ttk.Radiobutton(mode_frame, text="📋 Kopieren (Originaldateien bleiben erhalten)", 
+
+        # Radio buttons for mode
+        ttk.Radiobutton(mode_frame, text="📋 " + t("copy_mode"),
                        variable=self.copy_mode, value=True).grid(row=0, column=0, sticky=tk.W, pady=2)
-        ttk.Radiobutton(mode_frame, text="📁 Verschieben (Originaldateien werden verschoben)", 
+        ttk.Radiobutton(mode_frame, text="📁 " + t("move_mode"),
                        variable=self.copy_mode, value=False).grid(row=1, column=0, sticky=tk.W, pady=2)
-        
-        # Sortier-Optionen (rechts)
-        sort_frame = ttk.LabelFrame(mode_sort_frame, text="Sortierung", padding="10")
+
+        # Sorting options (right)
+        sort_frame = ttk.LabelFrame(mode_sort_frame, text=t("sorting"), padding="10")
         sort_frame.grid(row=0, column=1, sticky=(tk.W, tk.E, tk.N), padx=(5, 0))
-        
-        # Radio buttons für Sortierung
-        ttk.Radiobutton(sort_frame, text="📆 Nach Tagen sortieren (2023/01-January/01)", 
+
+        # Radio buttons for sorting
+        ttk.Radiobutton(sort_frame, text="📆 " + t("sort_by_day"),
                        variable=self.sort_by_day, value=True).grid(row=0, column=0, sticky=tk.W, pady=2)
-        ttk.Radiobutton(sort_frame, text="📅 Nach Monaten sortieren (2023/01-January)", 
+        ttk.Radiobutton(sort_frame, text="📅 " + t("sort_by_month"),
                        variable=self.sort_by_day, value=False).grid(row=1, column=0, sticky=tk.W, pady=2)
         
         # Grid-Konfiguration für gleichmäßige Verteilung
         mode_sort_frame.columnconfigure(0, weight=1)
         mode_sort_frame.columnconfigure(1, weight=1)
         
-        # Optionen (mit Medientypen integriert)
-        options_frame = ttk.LabelFrame(main_frame, text="Optionen", padding="10")
+        # Options (with media types integrated)
+        options_frame = ttk.LabelFrame(main_frame, text=t("options"), padding="10")
         options_frame.grid(row=4, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=10)
-        
-        # Medientyp-Auswahl in Optionen integriert
-        ttk.Label(options_frame, text="Medientypen:", font=('Arial', 9, 'bold')).grid(row=0, column=0, sticky=tk.W, pady=(0, 5))
-        
+
+        # Media type selection integrated in options
+        ttk.Label(options_frame, text=t("media_types"), font=('Arial', 9, 'bold')).grid(row=0, column=0, sticky=tk.W, pady=(0, 5))
+
         self.process_images = tk.BooleanVar(value=True)
         self.process_raw = tk.BooleanVar(value=False)
         self.process_videos = tk.BooleanVar(value=False)
         self.process_audio = tk.BooleanVar(value=False)
 
-        ttk.Checkbutton(options_frame, text="Bilder (JPG, PNG, TIFF, BMP, GIF, WEBP)",
+        ttk.Checkbutton(options_frame, text=t("images_formats"),
                        variable=self.process_images).grid(row=1, column=0, sticky=tk.W, pady=2, padx=(20, 0))
-        ttk.Checkbutton(options_frame, text="RAW (CR2, CR3, CRW, NEF, ARW, DNG, RAF, ORF, RW2, PEF, SRW)",
+        ttk.Checkbutton(options_frame, text=t("raw_formats"),
                        variable=self.process_raw).grid(row=2, column=0, sticky=tk.W, pady=2, padx=(20, 0))
-        ttk.Checkbutton(options_frame, text="Videos (MP4, AVI, MOV, MKV, WMV, FLV, WEBM)",
+        ttk.Checkbutton(options_frame, text=t("video_formats"),
                        variable=self.process_videos).grid(row=3, column=0, sticky=tk.W, pady=2, padx=(20, 0))
-        ttk.Checkbutton(options_frame, text="Audio (MP3, WAV, FLAC, AAC, OGG, M4A, WMA)",
+        ttk.Checkbutton(options_frame, text=t("audio_formats"),
                        variable=self.process_audio).grid(row=4, column=0, sticky=tk.W, pady=2, padx=(20, 0))
 
-        # Nur bestimmte Endungen (Debug/Nachholen)
+        # Only specific extensions (Debug/Catch-up)
         self.custom_extensions = tk.StringVar(value="")
-        ttk.Label(options_frame, text="Nur bestimmte Endungen (z.B. .crw, .thm):").grid(
+        ttk.Label(options_frame, text=t("custom_extensions")).grid(
             row=5, column=0, sticky=tk.W, pady=2, padx=(20, 0))
         ttk.Entry(options_frame, textvariable=self.custom_extensions, width=40).grid(
             row=6, column=0, sticky=tk.W, pady=2, padx=(20, 0))
@@ -135,21 +152,21 @@ class ImageSorterGUI:
         separator = ttk.Separator(options_frame, orient='horizontal')
         separator.grid(row=7, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=10)
 
-        ttk.Checkbutton(options_frame, text="Testlauf (keine Dateien verschieben)",
+        ttk.Checkbutton(options_frame, text=t("dry_run"),
                        variable=self.dry_run).grid(row=8, column=0, sticky=tk.W)
-        
-        # Hash-Datenbank Option
+
+        # Hash database option
         self.use_hash_db = tk.BooleanVar(value=True)
-        ttk.Checkbutton(options_frame, text="Hash-Datenbank verwenden (für zukünftige Sortierungen)",
+        ttk.Checkbutton(options_frame, text=t("use_hash_db"),
                        variable=self.use_hash_db).grid(row=9, column=0, columnspan=2, sticky=tk.W)
 
-        # Datumsvalidierung Option
+        # Date validation option
         self.validate_dates = tk.BooleanVar(value=True)
-        ttk.Checkbutton(options_frame, text="Datumsvalidierung aktivieren",
+        ttk.Checkbutton(options_frame, text=t("validate_dates"),
                        variable=self.validate_dates).grid(row=10, column=0, sticky=tk.W)
 
-        # Frühjahr-Jahr Einstellung
-        ttk.Label(options_frame, text="Frühstes gültiges Jahr:").grid(row=10, column=1, sticky=tk.W, padx=(20, 5))
+        # Earliest valid year setting
+        ttk.Label(options_frame, text=t("earliest_valid_year")).grid(row=10, column=1, sticky=tk.W, padx=(20, 5))
         year_spinbox = tk.Spinbox(options_frame, from_=1990, to=2030, width=8,
                                  textvariable=self.earliest_valid_year,
                                  state="normal" if self.validate_dates.get() else "disabled")
@@ -165,67 +182,67 @@ class ImageSorterGUI:
         separator2 = ttk.Separator(options_frame, orient='horizontal')
         separator2.grid(row=11, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=10)
 
-        # Duplikat-Behandlung Option
-        ttk.Label(options_frame, text="Duplikat-Behandlung:").grid(row=12, column=0, sticky=tk.W, pady=5)
-        self.duplicate_mode = tk.StringVar(value="verschieben")
+        # Duplicate handling option
+        ttk.Label(options_frame, text=t("duplicate_handling")).grid(row=12, column=0, sticky=tk.W, pady=5)
+        self.duplicate_mode = tk.StringVar(value="move")
         duplicate_combo = ttk.Combobox(options_frame, textvariable=self.duplicate_mode,
-                                     values=["aus", "verschieben", "ignorieren"],
+                                     values=["off", "move", "ignore"],
                                      state="readonly", width=20)
         duplicate_combo.grid(row=12, column=1, sticky=tk.W, padx=(10, 0), pady=5)
 
-        # Turbo-Modus für Duplikaterkennung
-        self.turbo_duplicate_detection = tk.BooleanVar(value=False)
-        ttk.Checkbutton(options_frame, text="🚀 Turbo-Modus (schnellere Duplikaterkennung)",
+        # Turbo mode for duplicate detection
+        self.turbo_duplicate_detection = tk.BooleanVar(value=True)
+        ttk.Checkbutton(options_frame, text="🚀 " + t("turbo_mode"),
                        variable=self.turbo_duplicate_detection).grid(row=13, column=0, columnspan=2, sticky=tk.W)
 
-        # Tooltip-Label für Duplikat-Modi
+        # Tooltip label for duplicate modes
         duplicate_info = tk.Label(options_frame, text="", fg="gray", font=("Arial", 8), wraplength=400)
         duplicate_info.grid(row=14, column=0, columnspan=2, sticky=tk.W, pady=(0, 5))
 
         def update_duplicate_info(*args):
             mode = self.duplicate_mode.get()
-            if mode == "aus":
-                duplicate_info.config(text="Alle Dateien werden sortiert (keine Duplikat-Erkennung)")
-            elif mode == "verschieben":
-                duplicate_info.config(text="Original wird sortiert, Duplikate → _duplicates/ Ordner")
-            elif mode == "ignorieren":
-                duplicate_info.config(text="Original wird sortiert, Duplikate bleiben unberührt im Quellordner")
+            if mode == "off":
+                duplicate_info.config(text=t("duplicate_info_off"))
+            elif mode == "move":
+                duplicate_info.config(text=t("duplicate_info_move"))
+            elif mode == "ignore":
+                duplicate_info.config(text=t("duplicate_info_ignore"))
 
         self.duplicate_mode.trace_add('write', update_duplicate_info)
-        update_duplicate_info()  # Initial anzeigen
+        update_duplicate_info()  # Show initial
 
-        # Batch-Verarbeitung Option
+        # Batch processing option
         self.batch_processing = tk.BooleanVar(value=False)
-        ttk.Checkbutton(options_frame, text="Batch-Verarbeitung (1000 Dateien pro Durchgang für große Sammlungen)",
+        ttk.Checkbutton(options_frame, text=t("batch_processing"),
                        variable=self.batch_processing).grid(row=15, column=0, columnspan=2, sticky=tk.W)
         
         # Buttons
         button_frame = ttk.Frame(main_frame)
         button_frame.grid(row=5, column=0, columnspan=3, pady=20)
-        
-        self.start_button = ttk.Button(button_frame, text="🚀 Sortierung starten", 
+
+        self.start_button = ttk.Button(button_frame, text="🚀 " + t("start_sorting"),
                                       command=self.start_sorting)
         self.start_button.pack(side=tk.LEFT, padx=5)
-        
-        self.stop_button = ttk.Button(button_frame, text="⏹️ Stoppen", 
+
+        self.stop_button = ttk.Button(button_frame, text="⏹️ " + t("stop"),
                                      command=self.stop_sorting, state=tk.DISABLED)
         self.stop_button.pack(side=tk.LEFT, padx=5)
-        
-        ttk.Button(button_frame, text="📋 Log löschen", 
+
+        ttk.Button(button_frame, text="📋 " + t("clear_log"),
                   command=self.clear_log).pack(side=tk.LEFT, padx=5)
-        
-        ttk.Button(button_frame, text="🔢 Hash-Datenbank verwalten", 
+
+        ttk.Button(button_frame, text="🔢 " + t("hash_db_manager"),
                   command=self.open_hash_manager).pack(side=tk.LEFT, padx=5)
-        
-        # Fortschrittsbalken
-        self.progress_var = tk.StringVar(value="Bereit")
+
+        # Progress bar
+        self.progress_var = tk.StringVar(value=t("ready"))
         ttk.Label(main_frame, textvariable=self.progress_var).grid(row=6, column=0, columnspan=3, pady=5)
-        
+
         self.progress_bar = ttk.Progressbar(main_frame, mode='indeterminate')
         self.progress_bar.grid(row=7, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=5)
-        
-        # Log-Ausgabe
-        log_frame = ttk.LabelFrame(main_frame, text="Log-Ausgabe", padding="5")
+
+        # Log output
+        log_frame = ttk.LabelFrame(main_frame, text=t("log_output"), padding="5")
         log_frame.grid(row=8, column=0, columnspan=3, sticky=(tk.W, tk.E, tk.N, tk.S), pady=10)
         
         self.log_text = scrolledtext.ScrolledText(log_frame, height=18, width=110)
@@ -255,58 +272,64 @@ class ImageSorterGUI:
         file_handler.setFormatter(formatter)
         self.logger.addHandler(file_handler)
         
+    def on_language_change(self, event=None):
+        """Handle language change"""
+        lang = "en" if self.language_var.get() == "English" else "de"
+        set_language(lang)
+        messagebox.showinfo(t("info"), "Please restart the application to apply the language change.")
+
     def browse_source(self):
-        """Durchsucht Quellordner"""
-        folder = filedialog.askdirectory(title="Quellordner mit Medien auswählen")
+        """Browse for source folder"""
+        folder = filedialog.askdirectory(title=t("select_source_folder"))
         if folder:
             self.source_dir.set(folder)
     
     def browse_target(self):
-        """Durchsucht Zielordner"""
-        folder = filedialog.askdirectory(title="Zielordner für sortierte Medien auswählen")
+        """Browse for target folder"""
+        folder = filedialog.askdirectory(title=t("select_target_folder"))
         if folder:
             self.target_dir.set(folder)
-    
+
     def clear_log(self):
-        """Löscht Log-Ausgabe"""
+        """Clears log output"""
         self.log_text.delete(1.0, tk.END)
-    
+
     def open_hash_manager(self):
-        """Öffnet Hash-Datenbank-Manager"""
+        """Opens hash database manager"""
         if not self.target_dir.get():
-            messagebox.showwarning("Achtung", "Bitte erst einen Zielordner auswählen!")
+            messagebox.showwarning(t("warning"), t("warning_select_target_first"))
             return
-        
+
         db_path = Path(self.target_dir.get()) / "media_hashes.db"
         if not db_path.exists():
-            messagebox.showinfo("Info", f"Keine Hash-Datenbank gefunden in:\n{db_path}\n\nDatenbank wird nach der ersten Sortierung erstellt.")
+            messagebox.showinfo(t("info"), t("warning_no_hash_db", path=db_path))
             return
-        
+
         HashManagerWindow(self.root, db_path)
-    
+
     def validate_inputs(self):
-        """Validiert Eingaben"""
+        """Validates inputs"""
         if not self.source_dir.get():
-            messagebox.showerror("Fehler", "Bitte Quellordner auswählen!")
+            messagebox.showerror(t("error"), t("error_no_source"))
             return False
-        
+
         if not self.target_dir.get():
-            messagebox.showerror("Fehler", "Bitte Zielordner auswählen!")
+            messagebox.showerror(t("error"), t("error_no_target"))
             return False
-        
+
         if not Path(self.source_dir.get()).exists():
-            messagebox.showerror("Fehler", "Quellordner existiert nicht!")
+            messagebox.showerror(t("error"), t("error_source_not_exists"))
             return False
-        
+
         if self.source_dir.get() == self.target_dir.get():
-            messagebox.showerror("Fehler", "Quell- und Zielordner müssen unterschiedlich sein!")
+            messagebox.showerror(t("error"), t("error_no_source"))
             return False
         
-        # Prüfe ob mindestens ein Medientyp ausgewählt ist oder custom extensions gesetzt
+        # Check if at least one media type is selected or custom extensions are set
         has_custom = self.custom_extensions.get().strip() != ""
         has_checkbox = self.process_images.get() or self.process_raw.get() or self.process_videos.get() or self.process_audio.get()
         if not (has_custom or has_checkbox):
-            messagebox.showerror("Fehler", "Bitte mindestens einen Medientyp auswählen oder bestimmte Endungen angeben!")
+            messagebox.showerror(t("error"), t("error_no_media_type"))
             return False
         
         return True
@@ -329,12 +352,12 @@ class ImageSorterGUI:
         thread.start()
     
     def stop_sorting(self):
-        """Stoppt Sortierung"""
+        """Stops sorting"""
         self.is_running = False
         if self.sorter:
             self.sorter.is_running = False
-        self.logger.info("Sortierung wird gestoppt...")
-        self.progress_var.set("Stoppe...")
+        self.logger.info(t("sorting_stopped"))
+        self.progress_var.set(t("processing"))
     
     def run_sorting(self):
         """Führt Sortierung aus"""
@@ -1653,7 +1676,7 @@ class HashManagerWindow:
         
         # Neues Fenster erstellen
         self.window = tk.Toplevel(parent)
-        self.window.title("Hash-Datenbank Manager")
+        self.window.title(t("hash_manager_title"))
         self.window.geometry("1000x950")
         self.window.minsize(950, 700)
         
@@ -1674,78 +1697,78 @@ class HashManagerWindow:
         main_frame.pack(fill=tk.BOTH, expand=True)
         
         # Titel
-        title_label = ttk.Label(main_frame, text="🔢 Hash-Datenbank Manager", 
+        title_label = ttk.Label(main_frame, text="🔢 " + t("hash_manager_title"),
                                font=('Arial', 14, 'bold'))
         title_label.pack(pady=(0, 20))
         
         # Datenbank-Pfad anzeigen
-        path_frame = ttk.LabelFrame(main_frame, text="Datenbank", padding="10")
+        path_frame = ttk.LabelFrame(main_frame, text=t("database"), padding="10")
         path_frame.pack(fill=tk.X, pady=(0, 10))
         
         ttk.Label(path_frame, text=f"📂 {self.db_path}").pack(anchor=tk.W)
         
         # Statistiken
-        self.stats_frame = ttk.LabelFrame(main_frame, text="Statistiken", padding="10")
+        self.stats_frame = ttk.LabelFrame(main_frame, text=t("statistics"), padding="10")
         self.stats_frame.pack(fill=tk.X, pady=(0, 10))
         
         # Aktionen
-        actions_frame = ttk.LabelFrame(main_frame, text="Aktionen", padding="10")
+        actions_frame = ttk.LabelFrame(main_frame, text=t("actions"), padding="10")
         actions_frame.pack(fill=tk.X, pady=(0, 10))
         
         buttons_frame = ttk.Frame(actions_frame)
         buttons_frame.pack(fill=tk.X)
         
-        ttk.Button(buttons_frame, text="📊 Statistiken aktualisieren", 
+        ttk.Button(buttons_frame, text="📊 " + t("refresh_stats"),
                   command=self.refresh_stats).pack(side=tk.LEFT, padx=(0, 5))
-        
-        ttk.Button(buttons_frame, text="📋 Alle Einträge", 
+
+        ttk.Button(buttons_frame, text="📋 " + t("all_entries"),
                   command=self.show_all_entries).pack(side=tk.LEFT, padx=5)
-        
-        ttk.Button(buttons_frame, text="🔍 Duplikate prüfen", 
+
+        ttk.Button(buttons_frame, text="🔍 " + t("check_duplicates"),
                   command=self.show_duplicates).pack(side=tk.LEFT, padx=5)
-        
-        ttk.Button(buttons_frame, text="🧹 Aufräumen", 
+
+        ttk.Button(buttons_frame, text="🧹 " + t("cleanup"),
                   command=self.cleanup_missing).pack(side=tk.LEFT, padx=5)
-        
-        ttk.Button(buttons_frame, text="📄 CSV Export", 
+
+        ttk.Button(buttons_frame, text="📄 " + t("csv_export"),
                   command=self.export_csv).pack(side=tk.LEFT, padx=5)
         
         # Zweite Zeile für Bearbeitungsfunktionen
         edit_buttons_frame = ttk.Frame(actions_frame)
         edit_buttons_frame.pack(fill=tk.X, pady=(5, 0))
         
-        ttk.Button(edit_buttons_frame, text="🗑️ Auswahl löschen", 
+        ttk.Button(edit_buttons_frame, text="🗑️ " + t("delete_selection"),
                   command=self.delete_selected).pack(side=tk.LEFT, padx=(0, 5))
-        
-        ttk.Button(edit_buttons_frame, text="📝 Eintrag bearbeiten", 
+
+        ttk.Button(edit_buttons_frame, text="📝 " + t("edit_entry"),
                   command=self.edit_selected).pack(side=tk.LEFT, padx=5)
-        
-        ttk.Button(edit_buttons_frame, text="🔄 Pfad aktualisieren", 
+
+        ttk.Button(edit_buttons_frame, text="🔄 " + t("update_path"),
                   command=self.update_path).pack(side=tk.LEFT, padx=5)
-        
-        ttk.Button(edit_buttons_frame, text="➕ Manuell hinzufügen", 
+
+        ttk.Button(edit_buttons_frame, text="➕ " + t("add_manually"),
                   command=self.add_manual_entry).pack(side=tk.LEFT, padx=5)
         
         # Suchergebnisse/Output
-        self.results_frame = ttk.LabelFrame(main_frame, text="Alle Einträge", padding="5")
+        self.results_frame = ttk.LabelFrame(main_frame, text=t("all_entries_title"), padding="5")
         self.results_frame.pack(fill=tk.BOTH, expand=True, pady=(10, 0))
         
         # Treeview für Ergebnisse
-        columns = ('Dateiname', 'Pfad', 'Größe', 'Datum', 'Quelle')
+        columns = ('filename', 'path', 'size', 'date', 'source')
         self.tree = ttk.Treeview(self.results_frame, columns=columns, show='headings', height=20)
-        
+
         # Spalten konfigurieren
-        self.tree.heading('Dateiname', text='Dateiname')
-        self.tree.heading('Pfad', text='Pfad')
-        self.tree.heading('Größe', text='Größe (KB)')
-        self.tree.heading('Datum', text='Aufnahmedatum')
-        self.tree.heading('Quelle', text='Datumsquelle')
-        
-        self.tree.column('Dateiname', width=180)
-        self.tree.column('Pfad', width=350)
-        self.tree.column('Größe', width=90)
-        self.tree.column('Datum', width=140)
-        self.tree.column('Quelle', width=100)
+        self.tree.heading('filename', text=t("filename"))
+        self.tree.heading('path', text=t("path"))
+        self.tree.heading('size', text=t("size_kb"))
+        self.tree.heading('date', text=t("date_taken"))
+        self.tree.heading('source', text=t("date_source"))
+
+        self.tree.column('filename', width=180)
+        self.tree.column('path', width=350)
+        self.tree.column('size', width=90)
+        self.tree.column('date', width=140)
+        self.tree.column('source', width=100)
         
         # Scrollbar für Treeview
         scrollbar = ttk.Scrollbar(self.results_frame, orient=tk.VERTICAL, command=self.tree.yview)
@@ -1755,36 +1778,36 @@ class HashManagerWindow:
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
         # Suche-Frame
-        search_frame = ttk.LabelFrame(main_frame, text="Suche", padding="10")
+        search_frame = ttk.LabelFrame(main_frame, text=t("search_label"), padding="10")
         search_frame.pack(fill=tk.X, pady=(10, 0))
         
         # Dateiname-Suche
         name_frame = ttk.Frame(search_frame)
         name_frame.pack(fill=tk.X, pady=(0, 5))
         
-        ttk.Label(name_frame, text="Dateiname:").pack(side=tk.LEFT)
+        ttk.Label(name_frame, text=t("filename_label")).pack(side=tk.LEFT)
         self.search_name = tk.StringVar()
         name_entry = ttk.Entry(name_frame, textvariable=self.search_name, width=30)
         name_entry.pack(side=tk.LEFT, padx=(5, 5))
-        ttk.Button(name_frame, text="🔍 Suchen", 
+        ttk.Button(name_frame, text="🔍 " + t("search_btn"),
                   command=self.search_by_name).pack(side=tk.LEFT)
         
         # Datum-Suche
         date_frame = ttk.Frame(search_frame)
         date_frame.pack(fill=tk.X)
         
-        ttk.Label(date_frame, text="Von:").pack(side=tk.LEFT)
+        ttk.Label(date_frame, text=t("from_date")).pack(side=tk.LEFT)
         self.search_date_start = tk.StringVar()
         ttk.Entry(date_frame, textvariable=self.search_date_start, width=12).pack(side=tk.LEFT, padx=(5, 5))
-        
-        ttk.Label(date_frame, text="Bis:").pack(side=tk.LEFT, padx=(10, 0))
+
+        ttk.Label(date_frame, text=t("to_date")).pack(side=tk.LEFT, padx=(10, 0))
         self.search_date_end = tk.StringVar()
         ttk.Entry(date_frame, textvariable=self.search_date_end, width=12).pack(side=tk.LEFT, padx=(5, 5))
-        
-        ttk.Button(date_frame, text="🔍 Datumssuche", 
+
+        ttk.Button(date_frame, text="🔍 " + t("date_search"),
                   command=self.search_by_date).pack(side=tk.LEFT)
-        
-        ttk.Label(date_frame, text="(Format: YYYY-MM-DD)", font=('Arial', 8)).pack(side=tk.LEFT, padx=(10, 0))
+
+        ttk.Label(date_frame, text=t("date_format_hint"), font=('Arial', 8)).pack(side=tk.LEFT, padx=(10, 0))
     
     def connect_database(self):
         """Verbindet zur Datenbank"""
@@ -1792,7 +1815,7 @@ class HashManagerWindow:
             self.db = sqlite3.connect(str(self.db_path))
             self.db.row_factory = sqlite3.Row
         except Exception as e:
-            messagebox.showerror("Fehler", f"Fehler beim Verbinden zur Datenbank:\n{e}")
+            messagebox.showerror(t("error"), t("error_db_connect", error=e))
     
     def update_results_title(self, title):
         """Aktualisiert den Titel des Ergebnisbereichs"""
@@ -1828,17 +1851,17 @@ class HashManagerWindow:
                     row['date_source'] or ''
                 ))
             
-            self.update_results_title(f"📊 Alle Einträge ({len(results)})")
-            
+            self.update_results_title(f"📊 {t('all_entries_title')} ({len(results)})")
+
         except Exception as e:
-            messagebox.showerror("Fehler", f"Fehler beim Laden der Einträge:\n{e}")
+            messagebox.showerror(t("error"), t("error_loading_entries", error=e))
     
     def refresh_stats(self):
         """Aktualisiert Statistiken"""
         if not self.db:
             return
         
-        self.update_results_title("📊 Alle Einträge")
+        self.update_results_title("📊 " + t("all_entries_title"))
         
         try:
             cursor = self.db.cursor()
@@ -1874,15 +1897,15 @@ class HashManagerWindow:
             for widget in self.stats_frame.winfo_children():
                 widget.destroy()
             
-            stats_text = f"📊 Gesamt Dateien: {total_files}"
-            
+            stats_text = f"📊 {t('total_files', count=total_files)}"
+
             # Duplikate nur anzeigen wenn welche vorhanden sind
             if total_duplicates > 0:
-                stats_text += f"\n🔗 Eindeutige Hashes: {unique_hashes}"
-                stats_text += f"\n🔄 Duplikat-Gruppen: {duplicate_groups}"
-                stats_text += f"\n📁 Gesamt Duplikate: {total_duplicates}"
+                stats_text += f"\n🔗 {t('unique_hashes', count=unique_hashes)}"
+                stats_text += f"\n🔄 {t('duplicate_groups', count=duplicate_groups)}"
+                stats_text += f"\n📁 {t('total_duplicates', count=total_duplicates)}"
             else:
-                stats_text += f"\n✅ Alle Dateien eindeutig (keine Duplikate)"
+                stats_text += f"\n✅ {t('all_files_unique')}"
             
             if date_range['earliest'] and date_range['latest']:
                 try:
@@ -1895,17 +1918,18 @@ class HashManagerWindow:
                     
                     # Zeige nur unterschiedliche Daten
                     if earliest_str == latest_str:
-                        stats_text += f"\n📅 Zeitraum: {earliest_str}"
+                        stats_text += f"\n📅 {t('time_range', range=earliest_str)}"
                     else:
-                        stats_text += f"\n📅 Zeitraum: {earliest_str} - {latest_str}"
+                        stats_text += f"\n📅 {t('time_range', range=f'{earliest_str} - {latest_str}')}"
                 except Exception:
                     # Fallback für ungültige Datumsformate
-                    stats_text += f"\n📅 Zeitraum: {date_range['earliest'][:10]} - {date_range['latest'][:10]}"
+                    fallback_range = f"{date_range['earliest'][:10]} - {date_range['latest'][:10]}"
+                    stats_text += f"\n📅 {t('time_range', range=fallback_range)}"
             
             ttk.Label(self.stats_frame, text=stats_text, font=('Arial', 10)).pack(anchor=tk.W)
             
         except Exception as e:
-            messagebox.showerror("Fehler", f"Fehler beim Laden der Statistiken:\n{e}")
+            messagebox.showerror(t("error"), t("error_loading_stats", error=e))
     
     def show_duplicates(self):
         """Zeigt Duplikate an"""
@@ -1916,7 +1940,7 @@ class HashManagerWindow:
         for item in self.tree.get_children():
             self.tree.delete(item)
         
-        self.update_results_title("🔄 Duplikate")
+        self.update_results_title("🔄 " + t("duplicates"))
         
         try:
             cursor = self.db.cursor()
@@ -1957,28 +1981,27 @@ class HashManagerWindow:
             self.tree.tag_configure('new_group', background='#e6f3ff')
             
             if len(results) == 0:
-                self.update_results_title("✅ Keine Duplikate gefunden")
-                # Zeige eine informative Nachricht im Tree
+                self.update_results_title("✅ " + t("no_duplicates_found"))
                 self.tree.insert('', tk.END, values=(
-                    "✅ Keine Duplikate",
-                    "Die Datenbank ist bereits bereinigt",
+                    "✅ " + t("no_duplicates_found"),
+                    t("db_already_clean"),
                     "---",
                     "---",
                     "---"
                 ))
-                messagebox.showinfo("Duplikate", "Keine Duplikate gefunden!\n\nDie Datenbank ist bereits bereinigt.")
+                messagebox.showinfo(t("duplicates"), t("no_duplicates_msg"))
             else:
-                self.update_results_title(f"🔄 Duplikate ({len(results)})")
-                messagebox.showinfo("Duplikate", f"{len(results)} Duplikate gefunden!")
+                self.update_results_title(f"🔄 {t('duplicates')} ({len(results)})")
+                messagebox.showinfo(t("duplicates"), t("duplicates_found", count=len(results)))
             
         except Exception as e:
-            messagebox.showerror("Fehler", f"Fehler beim Suchen von Duplikaten:\n{e}")
+            messagebox.showerror(t("error"), t("error_duplicates", error=e))
     
     def search_by_name(self):
         """Sucht nach Dateinamen"""
         pattern = self.search_name.get().strip()
         if not pattern:
-            messagebox.showwarning("Achtung", "Bitte Suchbegriff eingeben!")
+            messagebox.showwarning(t("warning"), t("enter_search_term"))
             return
         
         self.update_results_title(f"🔍 Suche: '{pattern}'")
@@ -1990,7 +2013,7 @@ class HashManagerWindow:
         end_date = self.search_date_end.get().strip()
         
         if not start_date or not end_date:
-            messagebox.showwarning("Achtung", "Bitte Start- und Enddatum eingeben!")
+            messagebox.showwarning(t("warning"), t("enter_search_term"))
             return
         
         self.update_results_title(f"🗓️ Zeitraum: {start_date} - {end_date}")
@@ -2032,18 +2055,17 @@ class HashManagerWindow:
             if not self.results_frame.cget('text').startswith(('🔍', '🗓️')):
                 self.update_results_title(f"🔍 Suchergebnisse ({len(results)})")
             
-            messagebox.showinfo("Suchergebnisse", f"{len(results)} Dateien gefunden!\nSuche: {search_desc}")
-            
+            messagebox.showinfo(t("search_results"), t("files_found", count=len(results), desc=search_desc))
+
         except Exception as e:
-            messagebox.showerror("Fehler", f"Fehler bei der Suche:\n{e}")
+            messagebox.showerror(t("error"), t("error_search", error=e))
     
     def cleanup_missing(self):
         """Entfernt Einträge für nicht existierende Dateien"""
         if not self.db:
             return
         
-        if not messagebox.askyesno("Bestätigung", 
-                                  "Möchten Sie nicht existierende Dateien aus der Datenbank entfernen?\n\nDies kann nicht rückgängig gemacht werden!"):
+        if not messagebox.askyesno(t("confirmation"), t("confirm_cleanup")):
             return
         
         try:
@@ -2058,11 +2080,11 @@ class HashManagerWindow:
                     removed_count += 1
             
             self.db.commit()
-            messagebox.showinfo("Aufräumen", f"{removed_count} nicht existierende Einträge entfernt!")
+            messagebox.showinfo(t("cleanup"), t("cleanup_result", count=removed_count))
             self.refresh_stats()
-            
+
         except Exception as e:
-            messagebox.showerror("Fehler", f"Fehler beim Aufräumen:\n{e}")
+            messagebox.showerror(t("error"), t("error_cleanup", error=e))
     
     def export_csv(self):
         """Exportiert Datenbank zu CSV"""
@@ -2073,9 +2095,9 @@ class HashManagerWindow:
         import csv
         
         filename = filedialog.asksaveasfilename(
-            title="CSV Export speichern",
+            title=t("csv_save_title"),
             defaultextension=".csv",
-            filetypes=[("CSV Dateien", "*.csv"), ("Alle Dateien", "*.*")]
+            filetypes=[(t("csv_files"), "*.csv"), (t("all_files_label"), "*.*")]
         )
         
         if not filename:
@@ -2092,26 +2114,25 @@ class HashManagerWindow:
             
             with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
                 writer = csv.writer(csvfile)
-                writer.writerow(['Hash', 'Dateiname', 'Pfad', 'Größe (Bytes)', 
-                               'Hinzugefügt', 'Aufgenommen', 'Datumsquelle', 'Medientyp'])
+                writer.writerow(['Hash', t("filename"), t("path"), 'Size (Bytes)',
+                               'Added', t("date_taken"), t("date_source"), 'Media Type'])
                 
                 for row in cursor.fetchall():
                     writer.writerow(row)
             
-            messagebox.showinfo("Export", f"Datenbank erfolgreich exportiert:\n{filename}")
-            
+            messagebox.showinfo(t("csv_export"), t("export_success", filename=filename))
+
         except Exception as e:
-            messagebox.showerror("Fehler", f"Fehler beim CSV-Export:\n{e}")
+            messagebox.showerror(t("error"), t("error_csv_export", error=e))
     
     def delete_selected(self):
         """Löscht ausgewählte Einträge"""
         selected_items = self.tree.selection()
         if not selected_items:
-            messagebox.showwarning("Auswahl", "Bitte wählen Sie Einträge zum Löschen aus!")
+            messagebox.showwarning(t("warning"), t("select_entries_delete"))
             return
-        
-        if not messagebox.askyesno("Bestätigung", 
-                                  f"Möchten Sie {len(selected_items)} Einträge aus der Datenbank löschen?\n\nDies kann nicht rückgängig gemacht werden!"):
+
+        if not messagebox.askyesno(t("confirmation"), t("confirm_delete_entries", count=len(selected_items))):
             return
         
         try:
@@ -2128,7 +2149,7 @@ class HashManagerWindow:
                     self.tree.delete(item)
             
             self.db.commit()
-            messagebox.showinfo("Gelöscht", f"{deleted_count} Einträge erfolgreich gelöscht!")
+            messagebox.showinfo(t("delete"), t("deleted_success", count=deleted_count))
             self.refresh_stats()
             
             # Aktualisiere Anzeige
@@ -2139,17 +2160,17 @@ class HashManagerWindow:
                 self.update_results_title(f"{title_base} ({remaining_count})")
             
         except Exception as e:
-            messagebox.showerror("Fehler", f"Fehler beim Löschen:\n{e}")
+            messagebox.showerror(t("error"), t("error_deleting", error=e))
     
     def edit_selected(self):
         """Bearbeitet ausgewählten Eintrag"""
         selected_items = self.tree.selection()
         if not selected_items:
-            messagebox.showwarning("Auswahl", "Bitte wählen Sie einen Eintrag zum Bearbeiten aus!")
+            messagebox.showwarning(t("warning"), t("select_entry_edit"))
             return
-        
+
         if len(selected_items) > 1:
-            messagebox.showwarning("Auswahl", "Bitte wählen Sie nur einen Eintrag zum Bearbeiten aus!")
+            messagebox.showwarning(t("warning"), t("select_one_entry"))
             return
         
         item = selected_items[0]
@@ -2157,7 +2178,7 @@ class HashManagerWindow:
         
         # Erstelle Bearbeitungsfenster
         edit_window = tk.Toplevel(self.window)
-        edit_window.title("Eintrag bearbeiten")
+        edit_window.title(t("edit_entry_title"))
         edit_window.geometry("500x400")
         edit_window.resizable(False, False)
         
@@ -2181,47 +2202,46 @@ class HashManagerWindow:
             
             db_row = cursor.fetchone()
             if not db_row:
-                messagebox.showerror("Fehler", "Eintrag nicht in Datenbank gefunden!")
+                messagebox.showerror(t("error"), t("entry_not_found"))
                 edit_window.destroy()
                 return
             
             # Eingabefelder
-            ttk.Label(frame, text="Dateiname:").grid(row=0, column=0, sticky=tk.W, pady=2)
+            ttk.Label(frame, text=t("filename_label")).grid(row=0, column=0, sticky=tk.W, pady=2)
             name_var = tk.StringVar(value=db_row['file_name'])
             ttk.Entry(frame, textvariable=name_var, width=50).grid(row=0, column=1, pady=2, padx=(10, 0))
-            
-            ttk.Label(frame, text="Pfad:").grid(row=1, column=0, sticky=tk.W, pady=2)
+
+            ttk.Label(frame, text=t("path") + ":").grid(row=1, column=0, sticky=tk.W, pady=2)
             path_var = tk.StringVar(value=db_row['file_path'])
             ttk.Entry(frame, textvariable=path_var, width=50).grid(row=1, column=1, pady=2, padx=(10, 0))
             
-            ttk.Label(frame, text="Aufnahmedatum:").grid(row=2, column=0, sticky=tk.W, pady=2)
+            ttk.Label(frame, text=t("date_taken_label")).grid(row=2, column=0, sticky=tk.W, pady=2)
             date_var = tk.StringVar(value=db_row['date_taken'] or '')
             ttk.Entry(frame, textvariable=date_var, width=50).grid(row=2, column=1, pady=2, padx=(10, 0))
-            ttk.Label(frame, text="Format: YYYY-MM-DD HH:MM:SS", font=('Arial', 8)).grid(row=3, column=1, sticky=tk.W, padx=(10, 0))
-            
-            ttk.Label(frame, text="Datumsquelle:").grid(row=4, column=0, sticky=tk.W, pady=2)
+            ttk.Label(frame, text=t("date_format_long"), font=('Arial', 8)).grid(row=3, column=1, sticky=tk.W, padx=(10, 0))
+
+            ttk.Label(frame, text=t("date_source_label")).grid(row=4, column=0, sticky=tk.W, pady=2)
             source_var = tk.StringVar(value=db_row['date_source'] or '')
             source_combo = ttk.Combobox(frame, textvariable=source_var, 
                                        values=["FILENAME", "EXIF", "METADATA", "UNKNOWN", "INVALID"], 
                                        width=47)
             source_combo.grid(row=4, column=1, pady=2, padx=(10, 0))
             
-            ttk.Label(frame, text="Medientyp:").grid(row=5, column=0, sticky=tk.W, pady=2)
+            ttk.Label(frame, text=t("media_type_label")).grid(row=5, column=0, sticky=tk.W, pady=2)
             media_var = tk.StringVar(value=db_row['media_type'] or '')
-            media_combo = ttk.Combobox(frame, textvariable=media_var, 
-                                      values=["IMAGE", "VIDEO", "AUDIO"], 
+            media_combo = ttk.Combobox(frame, textvariable=media_var,
+                                      values=["IMAGE", "VIDEO", "AUDIO"],
                                       width=47)
             media_combo.grid(row=5, column=1, pady=2, padx=(10, 0))
-            
-            # Schreibgeschützte Felder
-            ttk.Label(frame, text="Hash:").grid(row=6, column=0, sticky=tk.W, pady=2)
+
+            ttk.Label(frame, text=t("hash_label")).grid(row=6, column=0, sticky=tk.W, pady=2)
             ttk.Label(frame, text=db_row['file_hash'][:16] + "...", font=('Courier', 8)).grid(row=6, column=1, sticky=tk.W, pady=2, padx=(10, 0))
             
-            ttk.Label(frame, text="Dateigröße:").grid(row=7, column=0, sticky=tk.W, pady=2)
+            ttk.Label(frame, text=t("file_size_label")).grid(row=7, column=0, sticky=tk.W, pady=2)
             size_kb = round(db_row['file_size'] / 1024, 1) if db_row['file_size'] else 0
             ttk.Label(frame, text=f"{size_kb} KB").grid(row=7, column=1, sticky=tk.W, pady=2, padx=(10, 0))
             
-            ttk.Label(frame, text="Hinzugefügt:").grid(row=8, column=0, sticky=tk.W, pady=2)
+            ttk.Label(frame, text=t("date_added_label")).grid(row=8, column=0, sticky=tk.W, pady=2)
             ttk.Label(frame, text=db_row['date_added'] or '').grid(row=8, column=1, sticky=tk.W, pady=2, padx=(10, 0))
             
             # Buttons
@@ -2236,7 +2256,7 @@ class HashManagerWindow:
                         try:
                             date_taken = datetime.fromisoformat(date_var.get().strip()).isoformat()
                         except ValueError:
-                            messagebox.showerror("Fehler", "Ungültiges Datumsformat! Verwenden Sie: YYYY-MM-DD HH:MM:SS")
+                            messagebox.showerror(t("error"), t("invalid_date_format"))
                             return
                     
                     # Aktualisiere Datenbank
@@ -2255,7 +2275,7 @@ class HashManagerWindow:
                     ))
                     
                     self.db.commit()
-                    messagebox.showinfo("Erfolg", "Eintrag erfolgreich aktualisiert!")
+                    messagebox.showinfo(t("info"), t("entry_updated"))
                     edit_window.destroy()
                     
                     # Aktualisiere Treeview
@@ -2268,24 +2288,23 @@ class HashManagerWindow:
                     ))
                     
                 except Exception as e:
-                    messagebox.showerror("Fehler", f"Fehler beim Speichern:\n{e}")
-            
-            ttk.Button(button_frame, text="💾 Speichern", command=save_changes).pack(side=tk.LEFT, padx=5)
-            ttk.Button(button_frame, text="❌ Abbrechen", command=edit_window.destroy).pack(side=tk.LEFT, padx=5)
-            
+                    messagebox.showerror(t("error"), t("error_saving", error=e))
+
+            ttk.Button(button_frame, text="💾 " + t("save"), command=save_changes).pack(side=tk.LEFT, padx=5)
+            ttk.Button(button_frame, text="❌ " + t("cancel"), command=edit_window.destroy).pack(side=tk.LEFT, padx=5)
+
         except Exception as e:
-            messagebox.showerror("Fehler", f"Fehler beim Laden der Daten:\n{e}")
+            messagebox.showerror(t("error"), t("error_loading_data", error=e))
             edit_window.destroy()
     
     def update_path(self):
         """Aktualisiert Pfade für ausgewählte Einträge"""
         selected_items = self.tree.selection()
         if not selected_items:
-            messagebox.showwarning("Auswahl", "Bitte wählen Sie Einträge aus!")
+            messagebox.showwarning(t("warning"), t("select_entries"))
             return
-        
-        # Frage nach neuem Basispfad
-        new_base_path = filedialog.askdirectory(title="Neuen Basispfad für Dateien auswählen")
+
+        new_base_path = filedialog.askdirectory(title=t("select_new_base_path"))
         if not new_base_path:
             return
         
@@ -2313,16 +2332,16 @@ class HashManagerWindow:
                     self.tree.item(item, values=new_values)
             
             self.db.commit()
-            messagebox.showinfo("Aktualisiert", f"{updated_count} Pfade erfolgreich aktualisiert!")
-            
+            messagebox.showinfo(t("info"), t("paths_updated", count=updated_count))
+
         except Exception as e:
-            messagebox.showerror("Fehler", f"Fehler beim Aktualisieren der Pfade:\n{e}")
+            messagebox.showerror(t("error"), t("error_updating_paths", error=e))
     
     def add_manual_entry(self):
         """Fügt manuell einen neuen Eintrag hinzu"""
         # Erstelle Eingabefenster
         add_window = tk.Toplevel(self.window)
-        add_window.title("Manuellen Eintrag hinzufügen")
+        add_window.title(t("add_manual_title"))
         add_window.geometry("500x350")
         add_window.resizable(False, False)
         
@@ -2336,37 +2355,37 @@ class HashManagerWindow:
         frame.pack(fill=tk.BOTH, expand=True)
         
         # Eingabefelder
-        ttk.Label(frame, text="Dateiname:").grid(row=0, column=0, sticky=tk.W, pady=2)
+        ttk.Label(frame, text=t("filename_label")).grid(row=0, column=0, sticky=tk.W, pady=2)
         name_var = tk.StringVar()
         ttk.Entry(frame, textvariable=name_var, width=50).grid(row=0, column=1, pady=2, padx=(10, 0))
-        
-        ttk.Label(frame, text="Pfad:").grid(row=1, column=0, sticky=tk.W, pady=2)
+
+        ttk.Label(frame, text=t("path") + ":").grid(row=1, column=0, sticky=tk.W, pady=2)
         path_var = tk.StringVar()
         path_entry = ttk.Entry(frame, textvariable=path_var, width=50)
         path_entry.grid(row=1, column=1, pady=2, padx=(10, 0))
         
         # Datei-Browser Button
         def browse_file():
-            filename = filedialog.askopenfilename(title="Datei auswählen")
+            filename = filedialog.askopenfilename(title=t("select_file"))
             if filename:
                 path_var.set(filename)
                 name_var.set(Path(filename).name)
         
-        ttk.Button(frame, text="📁 Durchsuchen", command=browse_file).grid(row=2, column=1, sticky=tk.W, pady=2, padx=(10, 0))
+        ttk.Button(frame, text="📁 " + t("browse_file"), command=browse_file).grid(row=2, column=1, sticky=tk.W, pady=2, padx=(10, 0))
         
-        ttk.Label(frame, text="Aufnahmedatum:").grid(row=3, column=0, sticky=tk.W, pady=2)
+        ttk.Label(frame, text=t("date_taken_label")).grid(row=3, column=0, sticky=tk.W, pady=2)
         date_var = tk.StringVar()
         ttk.Entry(frame, textvariable=date_var, width=50).grid(row=3, column=1, pady=2, padx=(10, 0))
-        ttk.Label(frame, text="Format: YYYY-MM-DD HH:MM:SS", font=('Arial', 8)).grid(row=4, column=1, sticky=tk.W, padx=(10, 0))
-        
-        ttk.Label(frame, text="Datumsquelle:").grid(row=5, column=0, sticky=tk.W, pady=2)
+        ttk.Label(frame, text=t("date_format_long"), font=('Arial', 8)).grid(row=4, column=1, sticky=tk.W, padx=(10, 0))
+
+        ttk.Label(frame, text=t("date_source_label")).grid(row=5, column=0, sticky=tk.W, pady=2)
         source_var = tk.StringVar(value="MANUAL")
         source_combo = ttk.Combobox(frame, textvariable=source_var, 
                                    values=["MANUAL", "FILENAME", "EXIF", "METADATA", "UNKNOWN"], 
                                    width=47)
         source_combo.grid(row=5, column=1, pady=2, padx=(10, 0))
         
-        ttk.Label(frame, text="Medientyp:").grid(row=6, column=0, sticky=tk.W, pady=2)
+        ttk.Label(frame, text=t("media_type_label")).grid(row=6, column=0, sticky=tk.W, pady=2)
         media_var = tk.StringVar(value="IMAGE")
         media_combo = ttk.Combobox(frame, textvariable=media_var, 
                                   values=["IMAGE", "VIDEO", "AUDIO"], 
@@ -2383,13 +2402,12 @@ class HashManagerWindow:
                 filepath = path_var.get().strip()
                 
                 if not filename or not filepath:
-                    messagebox.showerror("Fehler", "Dateiname und Pfad sind erforderlich!")
+                    messagebox.showerror(t("error"), t("name_and_path_required"))
                     return
                 
                 # Prüfe ob Datei existiert
                 if not Path(filepath).exists():
-                    if not messagebox.askyesno("Warnung", 
-                                              "Die Datei existiert nicht am angegebenen Pfad. Trotzdem hinzufügen?"):
+                    if not messagebox.askyesno(t("warning"), t("file_not_exists_warning")):
                         return
                 
                 # Berechne Hash falls Datei existiert
@@ -2412,7 +2430,7 @@ class HashManagerWindow:
                     try:
                         date_taken = datetime.fromisoformat(date_var.get().strip()).isoformat()
                     except ValueError:
-                        messagebox.showerror("Fehler", "Ungültiges Datumsformat! Verwenden Sie: YYYY-MM-DD HH:MM:SS")
+                        messagebox.showerror(t("error"), t("invalid_date_format"))
                         return
                 
                 # Hole Dateigröße
@@ -2424,8 +2442,7 @@ class HashManagerWindow:
                 cursor = self.db.cursor()
                 cursor.execute('SELECT COUNT(*) FROM media_hashes WHERE file_hash = ?', (file_hash,))
                 if cursor.fetchone()[0] > 0:
-                    if not messagebox.askyesno("Duplikat", 
-                                              "Ein Eintrag mit diesem Hash existiert bereits. Trotzdem hinzufügen?"):
+                    if not messagebox.askyesno(t("duplicate_label"), t("duplicate_hash_warning")):
                         return
                 
                 # Füge zur Datenbank hinzu
@@ -2446,7 +2463,7 @@ class HashManagerWindow:
                 ))
                 
                 self.db.commit()
-                messagebox.showinfo("Erfolg", "Eintrag erfolgreich hinzugefügt!")
+                messagebox.showinfo(t("info"), t("entry_added"))
                 add_window.destroy()
                 self.refresh_stats()
                 
@@ -2455,10 +2472,10 @@ class HashManagerWindow:
                     self.show_all_entries()
                 
             except Exception as e:
-                messagebox.showerror("Fehler", f"Fehler beim Hinzufügen:\n{e}")
-        
-        ttk.Button(button_frame, text="➕ Hinzufügen", command=add_entry).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="❌ Abbrechen", command=add_window.destroy).pack(side=tk.LEFT, padx=5)
+                messagebox.showerror(t("error"), t("error_adding", error=e))
+
+        ttk.Button(button_frame, text="➕ " + t("add"), command=add_entry).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="❌ " + t("cancel"), command=add_window.destroy).pack(side=tk.LEFT, padx=5)
 
 def main():
     root = tk.Tk()

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Medien Viewer Web - Webbasierte Anwendung zum Betrachten sortierter Medien (Bilder, Videos, Audio)
+Media Viewer Web - Web-based application for viewing sorted media (images, videos, audio)
 """
 
 from flask import Flask, render_template, send_file, jsonify, request
@@ -16,6 +16,13 @@ import sys
 import io
 import exifread
 from PIL import Image
+
+# Import i18n for language settings
+try:
+    from i18n import set_language, get_language
+except ImportError:
+    def set_language(lang): pass
+    def get_language(): return 'en'
 
 def get_resource_path(relative_path):
     """Ermittelt den korrekten Pfad zu Ressourcen sowohl für normale Python-Ausführung als auch für exe-Dateien"""
@@ -209,6 +216,16 @@ def set_directory():
         'loaded_paths': valid_dirs,
         'invalid_paths': invalid_dirs
     })
+
+@app.route('/api/set_language', methods=['POST'])
+def api_set_language():
+    """API: Sets the application language"""
+    data = request.json
+    language = data.get('language', 'en')
+    if language in ['en', 'de']:
+        set_language(language)
+        return jsonify({'success': True, 'language': language})
+    return jsonify({'error': 'Invalid language'}), 400
 
 def extract_raw_thumbnail(file_path):
     """Extrahiert eingebettetes JPEG-Vorschaubild aus RAW-Datei"""

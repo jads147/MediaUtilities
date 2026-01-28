@@ -17,6 +17,13 @@ from pathlib import Path
 from flask import Flask, render_template, jsonify, request, send_file
 import mimetypes
 
+# Import i18n for language settings
+try:
+    from i18n import set_language, get_language
+except ImportError:
+    def set_language(lang): pass
+    def get_language(): return 'en'
+
 # Initialize Flask
 app = Flask(__name__)
 
@@ -487,6 +494,16 @@ def handle_settings():
                 settings[key] = data[key]
         return jsonify({"success": True, "settings": settings})
     return jsonify(settings)
+
+@app.route('/api/set_language', methods=['POST'])
+def api_set_language():
+    """API: Sets the application language"""
+    data = request.json
+    language = data.get('language', 'en')
+    if language in ['en', 'de']:
+        set_language(language)
+        return jsonify({'success': True, 'language': language})
+    return jsonify({'error': 'Invalid language'}), 400
 
 
 def open_browser():

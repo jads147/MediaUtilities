@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -652,7 +652,10 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>MEDIA SWIPER</h1>
+            <div style="display: flex; justify-content: center; align-items: center; gap: 20px;">
+                <h1>MEDIA SWIPER</h1>
+                <button class="btn" style="background: rgba(255,255,255,0.1); padding: 8px 15px; font-size: 12px;" onclick="toggleLanguage()">🌐 EN/DE</button>
+            </div>
         </div>
 
         <!-- Setup Section -->
@@ -660,7 +663,7 @@
             <!-- Folder Selection -->
             <div class="folder-select">
                 <input type="text" class="folder-input" id="folderInput"
-                       placeholder="Ordnerpfad eingeben (z.B. C:\Users\Pictures)">
+                       placeholder="Enter folder path (e.g. C:\Users\Pictures)">
                 <button class="btn btn-primary" id="startBtn">Start</button>
                 <button class="btn" style="background: #333; padding: 12px 15px;" id="debugBtn" title="Debug">🔍</button>
             </div>
@@ -673,17 +676,17 @@
             <!-- Settings Panel -->
             <div class="settings-panel">
                 <div class="settings-header" onclick="toggleSettings()">
-                    <h3>Einstellungen</h3>
-                    <span class="settings-toggle" id="settingsToggle">▼ Erweitern</span>
+                    <h3 id="settingsTitle">Settings</h3>
+                    <span class="settings-toggle" id="settingsToggle">▼ Expand</span>
                 </div>
                 <div class="settings-content collapsed" id="settingsContent">
                     <!-- Media Types -->
                     <div class="settings-group">
-                        <div class="settings-group-title">Medientypen</div>
+                        <div class="settings-group-title" id="mediaTypesTitle">Media Types</div>
                         <div class="checkbox-group">
                             <div class="checkbox-item">
                                 <input type="checkbox" id="includeImages" checked>
-                                <label for="includeImages">Bilder</label>
+                                <label for="includeImages" id="labelImages">Images</label>
                             </div>
                             <div class="checkbox-item">
                                 <input type="checkbox" id="includeRaw" checked>
@@ -691,7 +694,7 @@
                             </div>
                             <div class="checkbox-item">
                                 <input type="checkbox" id="includeVideo" checked>
-                                <label for="includeVideo">Video</label>
+                                <label for="includeVideo" id="labelVideo">Video</label>
                             </div>
                             <div class="checkbox-item">
                                 <input type="checkbox" id="includeAudio" checked>
@@ -702,26 +705,26 @@
 
                     <!-- Sort Order -->
                     <div class="settings-group">
-                        <div class="settings-group-title">Sortierung</div>
+                        <div class="settings-group-title" id="sortOrderTitle">Sort Order</div>
                         <div class="radio-group" id="sortOrder">
-                            <div class="radio-item active" data-value="oldest">Älteste zuerst</div>
-                            <div class="radio-item" data-value="newest">Neueste zuerst</div>
-                            <div class="radio-item" data-value="name">Nach Name</div>
-                            <div class="radio-item" data-value="random">Zufällig</div>
+                            <div class="radio-item active" data-value="oldest" id="sortOldest">Oldest First</div>
+                            <div class="radio-item" data-value="newest" id="sortNewest">Newest First</div>
+                            <div class="radio-item" data-value="name" id="sortName">By Name</div>
+                            <div class="radio-item" data-value="random" id="sortRandom">Random</div>
                         </div>
                     </div>
 
                     <!-- Options -->
                     <div class="settings-group">
-                        <div class="settings-group-title">Optionen</div>
+                        <div class="settings-group-title" id="optionsTitle">Options</div>
                         <div class="checkbox-group">
                             <div class="checkbox-item">
                                 <input type="checkbox" id="recursive" checked>
-                                <label for="recursive">Unterordner einschließen</label>
+                                <label for="recursive" id="labelRecursive">Include subfolders</label>
                             </div>
                             <div class="checkbox-item">
                                 <input type="checkbox" id="skipSwiped" checked>
-                                <label for="skipSwiped">Bereits sortierte überspringen</label>
+                                <label for="skipSwiped" id="labelSkipSwiped">Skip already sorted</label>
                             </div>
                         </div>
                     </div>
@@ -741,19 +744,19 @@
         <div class="stats-bar hidden" id="statsBar">
             <div class="stat stat-kept">
                 <div class="stat-value" id="statKept">0</div>
-                <div class="stat-label">Behalten</div>
+                <div class="stat-label" id="labelKept">Kept</div>
             </div>
             <div class="stat stat-trashed">
                 <div class="stat-value" id="statTrashed">0</div>
-                <div class="stat-label">Aussortiert</div>
+                <div class="stat-label" id="labelTrashed">Trashed</div>
             </div>
             <div class="stat stat-remaining">
                 <div class="stat-value" id="statRemaining">0</div>
-                <div class="stat-label">Verbleibend</div>
+                <div class="stat-label" id="labelRemaining">Remaining</div>
             </div>
             <div class="stat stat-skipped hidden" id="statSkippedContainer">
                 <div class="stat-value" id="statSkipped">0</div>
-                <div class="stat-label">Bereits sortiert</div>
+                <div class="stat-label" id="labelSkipped">Already Sorted</div>
             </div>
         </div>
 
@@ -761,11 +764,11 @@
         <div class="card-container" id="cardContainer">
             <div class="loading" id="loadingScreen">
                 <div class="spinner"></div>
-                <p>Wähle einen Ordner zum Starten</p>
+                <p id="loadingText">Select a folder to start</p>
             </div>
 
             <div class="media-card hidden" id="mediaCard">
-                <div class="action-indicator indicator-keep">BEHALTEN</div>
+                <div class="action-indicator indicator-keep" id="indicatorKeep">KEEP</div>
                 <div class="action-indicator indicator-trash">TRASH</div>
                 <div class="media-content" id="mediaContent"></div>
                 <div class="file-info">
@@ -778,18 +781,18 @@
             </div>
 
             <div class="done-screen hidden" id="doneScreen">
-                <h2>Fertig!</h2>
+                <h2 id="doneTitle">Done!</h2>
                 <div class="done-stats">
                     <div class="done-stat">
                         <div class="done-stat-value" style="color: #4ade80" id="finalKept">0</div>
-                        <div class="done-stat-label">Behalten</div>
+                        <div class="done-stat-label" id="doneLabelKept">Kept</div>
                     </div>
                     <div class="done-stat">
                         <div class="done-stat-value" style="color: #f87171" id="finalTrashed">0</div>
-                        <div class="done-stat-label">Aussortiert</div>
+                        <div class="done-stat-label" id="doneLabelTrashed">Trashed</div>
                     </div>
                 </div>
-                <button class="btn btn-primary" onclick="location.reload()">Neuer Ordner</button>
+                <button class="btn btn-primary" onclick="location.reload()" id="newFolderBtn">New Folder</button>
             </div>
         </div>
 
@@ -831,6 +834,117 @@
         let currentX = 0;
         let sessionLog = [];
         let logVisible = false;
+        let currentLang = localStorage.getItem('mediautils_lang') || 'en';
+
+        // Translations
+        const translations = {
+            en: {
+                folder_placeholder: "Enter folder path (e.g. C:\\Users\\Pictures)",
+                settings: "Settings",
+                expand: "▼ Expand",
+                collapse: "▲ Collapse",
+                media_types: "Media Types",
+                images: "Images",
+                video: "Video",
+                sort_order: "Sort Order",
+                oldest_first: "Oldest First",
+                newest_first: "Newest First",
+                by_name: "By Name",
+                random: "Random",
+                options: "Options",
+                include_subfolders: "Include subfolders",
+                skip_already_sorted: "Skip already sorted",
+                kept: "Kept",
+                trashed: "Trashed",
+                remaining: "Remaining",
+                already_sorted: "Already Sorted",
+                select_folder: "Select a folder to start",
+                loading: "Loading...",
+                keep_indicator: "KEEP",
+                done: "Done!",
+                new_folder: "New Folder",
+                error_enter_folder: "Please enter folder path",
+                error_no_media: "No media files found in folder",
+                all_files_sorted: "All {total} files have already been sorted.\n\nDisable \"Skip already sorted\" in settings to sort again.",
+                session_resumed: "Session resumed: {skipped} already sorted, {remaining} new to process"
+            },
+            de: {
+                folder_placeholder: "Ordnerpfad eingeben (z.B. C:\\Users\\Pictures)",
+                settings: "Einstellungen",
+                expand: "▼ Erweitern",
+                collapse: "▲ Einklappen",
+                media_types: "Medientypen",
+                images: "Bilder",
+                video: "Video",
+                sort_order: "Sortierung",
+                oldest_first: "Älteste zuerst",
+                newest_first: "Neueste zuerst",
+                by_name: "Nach Name",
+                random: "Zufällig",
+                options: "Optionen",
+                include_subfolders: "Unterordner einschließen",
+                skip_already_sorted: "Bereits sortierte überspringen",
+                kept: "Behalten",
+                trashed: "Aussortiert",
+                remaining: "Verbleibend",
+                already_sorted: "Bereits sortiert",
+                select_folder: "Wähle einen Ordner zum Starten",
+                loading: "Laden...",
+                keep_indicator: "BEHALTEN",
+                done: "Fertig!",
+                new_folder: "Neuer Ordner",
+                error_enter_folder: "Bitte Ordnerpfad eingeben",
+                error_no_media: "Keine Mediendateien im Ordner gefunden",
+                all_files_sorted: "Alle {total} Dateien wurden bereits sortiert.\n\nDeaktiviere \"Bereits sortierte überspringen\" in den Einstellungen um erneut zu sortieren.",
+                session_resumed: "Session fortgesetzt: {skipped} bereits sortiert, {remaining} neu zu bearbeiten"
+            }
+        };
+
+        function t(key) {
+            return translations[currentLang][key] || translations['en'][key] || key;
+        }
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'en' ? 'de' : 'en';
+            localStorage.setItem('mediautils_lang', currentLang);
+            fetch('/api/set_language', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ language: currentLang })
+            }).catch(e => console.log('Could not save language to backend'));
+            updateUILanguage();
+        }
+
+        function updateUILanguage() {
+            document.getElementById('folderInput').placeholder = t('folder_placeholder');
+            document.getElementById('settingsTitle').textContent = t('settings');
+            document.getElementById('settingsToggle').textContent = document.getElementById('settingsContent').classList.contains('collapsed') ? t('expand') : t('collapse');
+            document.getElementById('mediaTypesTitle').textContent = t('media_types');
+            document.getElementById('labelImages').textContent = t('images');
+            document.getElementById('labelVideo').textContent = t('video');
+            document.getElementById('sortOrderTitle').textContent = t('sort_order');
+            document.getElementById('sortOldest').textContent = t('oldest_first');
+            document.getElementById('sortNewest').textContent = t('newest_first');
+            document.getElementById('sortName').textContent = t('by_name');
+            document.getElementById('sortRandom').textContent = t('random');
+            document.getElementById('optionsTitle').textContent = t('options');
+            document.getElementById('labelRecursive').textContent = t('include_subfolders');
+            document.getElementById('labelSkipSwiped').textContent = t('skip_already_sorted');
+            document.getElementById('labelKept').textContent = t('kept');
+            document.getElementById('labelTrashed').textContent = t('trashed');
+            document.getElementById('labelRemaining').textContent = t('remaining');
+            document.getElementById('labelSkipped').textContent = t('already_sorted');
+            document.getElementById('loadingText').textContent = t('select_folder');
+            document.getElementById('indicatorKeep').textContent = t('keep_indicator');
+            document.getElementById('doneTitle').textContent = t('done');
+            document.getElementById('doneLabelKept').textContent = t('kept');
+            document.getElementById('doneLabelTrashed').textContent = t('trashed');
+            document.getElementById('newFolderBtn').textContent = t('new_folder');
+            document.documentElement.lang = currentLang;
+        }
+
+        // Initialize language
+        updateUILanguage();
 
         // Elements
         const setupSection = document.getElementById('setupSection');
@@ -861,7 +975,7 @@
             const content = document.getElementById('settingsContent');
             const toggle = document.getElementById('settingsToggle');
             content.classList.toggle('collapsed');
-            toggle.textContent = content.classList.contains('collapsed') ? '▼ Erweitern' : '▲ Einklappen';
+            toggle.textContent = content.classList.contains('collapsed') ? t('expand') : t('collapse');
         }
 
         // Radio group handling
@@ -897,7 +1011,7 @@
         document.getElementById('debugBtn').addEventListener('click', async () => {
             const folder = folderInput.value.trim();
             if (!folder) {
-                alert('Bitte Ordnerpfad eingeben');
+                alert(t('error_enter_folder'));
                 return;
             }
 
@@ -912,13 +1026,13 @@
                 console.log('Debug data:', data);
 
                 let msg = `DEBUG INFO\n${'='.repeat(40)}\n`;
-                msg += `Ordner: ${data.folder}\n`;
-                msg += `Erlaubte Formate: ${data.allowed_formats_count}\n`;
-                msg += `Rekursiv: ${data.settings?.recursive}\n`;
-                msg += `\nGefundene Items: ${data.total_items}\n`;
+                msg += `Folder: ${data.folder}\n`;
+                msg += `Allowed formats: ${data.allowed_formats_count}\n`;
+                msg += `Recursive: ${data.settings?.recursive}\n`;
+                msg += `\nItems found: ${data.total_items}\n`;
 
                 if (data.items && data.items.length > 0) {
-                    msg += `\nErste Einträge:\n`;
+                    msg += `\nFirst entries:\n`;
                     data.items.slice(0, 15).forEach(item => {
                         const marker = item.is_media ? '✓' : ' ';
                         msg += `${marker} ${item.name} (${item.ext})\n`;
@@ -926,32 +1040,32 @@
                 }
 
                 if (data.media_found && data.media_found.length > 0) {
-                    msg += `\nMedien gefunden: ${data.media_found.length}\n`;
+                    msg += `\nMedia found: ${data.media_found.length}\n`;
                 } else {
-                    msg += `\nKEINE MEDIEN GEFUNDEN!\n`;
-                    msg += `Prüfe ob Dateien mit diesen Endungen existieren:\n`;
+                    msg += `\nNO MEDIA FOUND!\n`;
+                    msg += `Check if files with these extensions exist:\n`;
                     msg += `${(data.allowed_formats || []).slice(0, 10).join(', ')}...\n`;
                 }
 
                 if (data.error) {
-                    msg += `\nFEHLER: ${data.error}\n`;
+                    msg += `\nERROR: ${data.error}\n`;
                 }
 
                 alert(msg);
             } catch (error) {
-                alert('Debug Fehler: ' + error.message);
+                alert('Debug error: ' + error.message);
             }
         });
 
         async function initSession() {
             const folder = folderInput.value.trim();
             if (!folder) {
-                alert('Bitte Ordnerpfad eingeben');
+                alert(t('error_enter_folder'));
                 return;
             }
 
             startBtn.disabled = true;
-            startBtn.textContent = 'Laden...';
+            startBtn.textContent = t('loading');
 
             try {
                 const response = await fetch('/api/init', {
@@ -966,7 +1080,7 @@
                 const data = await response.json();
 
                 if (data.error) {
-                    alert('Fehler: ' + data.error);
+                    alert('Error: ' + data.error);
                     startBtn.disabled = false;
                     startBtn.textContent = 'Start';
                     return;
@@ -974,9 +1088,9 @@
 
                 if (data.remaining === 0) {
                     if (data.skipped > 0) {
-                        alert(`Alle ${data.total} Dateien wurden bereits sortiert.\n\nDeaktiviere "Bereits geswiped überspringen" in den Einstellungen um erneut zu sortieren.`);
+                        alert(t('all_files_sorted').replace('{total}', data.total));
                     } else {
-                        alert('Keine Mediendateien im Ordner gefunden');
+                        alert(t('error_no_media'));
                     }
                     startBtn.disabled = false;
                     startBtn.textContent = 'Start';
@@ -986,7 +1100,7 @@
                 // Show resumed info
                 if (data.resumed && data.skipped > 0) {
                     sessionInfo.classList.remove('hidden');
-                    sessionInfoText.textContent = `Session fortgesetzt: ${data.skipped} bereits sortiert, ${data.remaining} neu zu bearbeiten`;
+                    sessionInfoText.textContent = t('session_resumed').replace('{skipped}', data.skipped).replace('{remaining}', data.remaining);
                 }
 
                 // Show UI
@@ -1008,7 +1122,7 @@
                 loadCurrentMedia();
 
             } catch (error) {
-                alert('Verbindungsfehler: ' + error.message);
+                alert('Connection error: ' + error.message);
                 startBtn.disabled = false;
                 startBtn.textContent = 'Start';
             }

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -833,21 +833,24 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎭 Medien Viewer</h1>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h1 id="pageTitle">🎭 Media Viewer</h1>
+                <button id="langToggle" class="btn btn-secondary" onclick="toggleLanguage()" style="padding: 0.5rem 1rem;">🌐 EN/DE</button>
+            </div>
             <div class="directory-selector">
                 <div style="display: flex; flex-direction: column; gap: 5px;">
                     <textarea id="directoryInput" class="directory-input"
-                           placeholder="Pfade zu sortierten Medien (ein Pfad pro Zeile)&#10;z.B.:&#10;C:\Sortierte_Medien&#10;D:\Backup\Fotos"></textarea>
-                    <small style="color: var(--text-muted); font-size: 0.8rem;">Mehrere Pfade: ein Pfad pro Zeile oder mit ; getrennt. Ctrl+Enter zum Laden.</small>
+                           placeholder="Paths to sorted media (one path per line)&#10;e.g.:&#10;C:\Sorted_Media&#10;D:\Backup\Photos"></textarea>
+                    <small id="pathsHint" style="color: var(--text-muted); font-size: 0.8rem;">Multiple paths: one path per line or separated by ;. Ctrl+Enter to load.</small>
                 </div>
-                <button id="loadBtn" class="btn btn-primary">📁 Laden</button>
+                <button id="loadBtn" class="btn btn-primary">📁 Load</button>
                 <div class="show-all-toggle">
-                                    <input type="checkbox" id="showAllDays" class="toggle-checkbox">
-                <label for="showAllDays" class="toggle-label">Alle Tage/Monate anzeigen (vom ersten bis zum letzten verfügbaren)</label>
+                    <input type="checkbox" id="showAllDays" class="toggle-checkbox">
+                    <label for="showAllDays" id="showAllDaysLabel" class="toggle-label">Show all days/months (from first to last available)</label>
                 </div>
                 <div class="show-all-toggle">
                     <input type="checkbox" id="autoScrollToggle" class="toggle-checkbox">
-                    <label for="autoScrollToggle" class="toggle-label">Auto-Scroll Preview</label>
+                    <label for="autoScrollToggle" id="autoScrollLabel" class="toggle-label">Auto-Scroll Preview</label>
                 </div>
             </div>
         </div>
@@ -857,25 +860,25 @@
         <div id="stats" class="stats hidden">
             <div class="stat-card">
                 <div class="stat-number" id="totalImages">0</div>
-                <div class="stat-label">Medien insgesamt</div>
+                <div class="stat-label" id="statTotalMedia">Total Media</div>
             </div>
             <div class="stat-card">
                 <div class="stat-number" id="totalYears">0</div>
-                <div class="stat-label">Jahre</div>
+                <div class="stat-label" id="statYears">Years</div>
             </div>
             <div class="stat-card">
                 <div class="stat-number" id="totalMonths">0</div>
-                <div class="stat-label">Monate</div>
+                <div class="stat-label" id="statMonths">Months</div>
             </div>
             <div class="stat-card">
                 <div class="stat-number" id="unknownImages">0</div>
-                <div class="stat-label">Unbekannte Daten</div>
+                <div class="stat-label" id="statUnknown">Unknown Dates</div>
             </div>
         </div>
 
         <div class="content">
             <div id="loading" class="loading">
-                Wähle einen Ordner aus, um deine Bilder zu durchsuchen...
+                Select a folder to browse your images...
             </div>
             <div id="timeline" class="timeline hidden"></div>
         </div>
@@ -914,11 +917,98 @@
         let currentImages = [];
         let currentImageIndex = 0;
         let showAllDays = false;
+        let currentLang = localStorage.getItem('mediautils_lang') || 'en';
+
+        // Translations
+        const translations = {
+            en: {
+                title: "🎭 Media Viewer",
+                paths_placeholder: "Paths to sorted media (one path per line)\ne.g.:\nC:\\Sorted_Media\nD:\\Backup\\Photos",
+                paths_hint: "Multiple paths: one path per line or separated by ;. Ctrl+Enter to load.",
+                load: "📁 Load",
+                show_all_days: "Show all days/months (from first to last available)",
+                auto_scroll: "Auto-Scroll Preview",
+                total_media: "Total Media",
+                years: "Years",
+                months: "Months",
+                unknown_dates: "Unknown Dates",
+                select_folder: "Select a folder to browse your images...",
+                loading: "Loading media...",
+                back: "← Back",
+                files: "files",
+                files_in_days: "{files} files in {days} days",
+                unknown_dates_section: "⚠️ Unknown Dates",
+                unrealistic_dates: "📅 Unrealistic Dates",
+                error_enter_path: "Please enter at least one folder path",
+                error_valid_path: "Please enter at least one valid folder path",
+                error_setting_dirs: "Error setting directories",
+                error_loading: "Error loading structure",
+                navigate_hint: "← → to navigate"
+            },
+            de: {
+                title: "🎭 Medien Viewer",
+                paths_placeholder: "Pfade zu sortierten Medien (ein Pfad pro Zeile)\nz.B.:\nC:\\Sortierte_Medien\nD:\\Backup\\Fotos",
+                paths_hint: "Mehrere Pfade: ein Pfad pro Zeile oder mit ; getrennt. Ctrl+Enter zum Laden.",
+                load: "📁 Laden",
+                show_all_days: "Alle Tage/Monate anzeigen (vom ersten bis zum letzten verfügbaren)",
+                auto_scroll: "Auto-Scroll Preview",
+                total_media: "Medien insgesamt",
+                years: "Jahre",
+                months: "Monate",
+                unknown_dates: "Unbekannte Daten",
+                select_folder: "Wähle einen Ordner aus, um deine Bilder zu durchsuchen...",
+                loading: "Lade Medien...",
+                back: "← Zurück",
+                files: "Dateien",
+                files_in_days: "{files} Dateien in {days} Tagen",
+                unknown_dates_section: "⚠️ Unbekannte Daten",
+                unrealistic_dates: "📅 Unrealistische Daten",
+                error_enter_path: "Bitte gib mindestens einen Ordnerpfad ein",
+                error_valid_path: "Bitte gib mindestens einen gültigen Ordnerpfad ein",
+                error_setting_dirs: "Fehler beim Setzen der Verzeichnisse",
+                error_loading: "Fehler beim Laden der Struktur",
+                navigate_hint: "← → zum Navigieren"
+            }
+        };
+
+        function t(key) {
+            return translations[currentLang][key] || translations['en'][key] || key;
+        }
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'en' ? 'de' : 'en';
+            localStorage.setItem('mediautils_lang', currentLang);
+            // Also save to backend
+            fetch('/api/set_language', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ language: currentLang })
+            }).catch(e => console.log('Could not save language to backend'));
+            updateUILanguage();
+        }
+
+        function updateUILanguage() {
+            document.getElementById('pageTitle').textContent = t('title');
+            document.getElementById('directoryInput').placeholder = t('paths_placeholder');
+            document.getElementById('pathsHint').textContent = t('paths_hint');
+            document.getElementById('loadBtn').textContent = t('load');
+            document.getElementById('showAllDaysLabel').textContent = t('show_all_days');
+            document.getElementById('autoScrollLabel').textContent = t('auto_scroll');
+            document.getElementById('statTotalMedia').textContent = t('total_media');
+            document.getElementById('statYears').textContent = t('years');
+            document.getElementById('statMonths').textContent = t('months');
+            document.getElementById('statUnknown').textContent = t('unknown_dates');
+            document.getElementById('loading').textContent = t('select_folder');
+            document.documentElement.lang = currentLang;
+        }
+
+        // Initialize language on load
+        updateUILanguage();
 
         // Event Listeners
         document.getElementById('loadBtn').addEventListener('click', loadDirectory);
         document.getElementById('directoryInput').addEventListener('keypress', function(e) {
-            // Ctrl+Enter zum Laden (da Enter für neue Zeilen verwendet wird)
+            // Ctrl+Enter to load (since Enter is used for new lines)
             if (e.key === 'Enter' && e.ctrlKey) loadDirectory();
         });
         document.getElementById('showAllDays').addEventListener('change', function(e) {
@@ -969,18 +1059,18 @@
         async function loadDirectory() {
             const input = document.getElementById('directoryInput').value.trim();
             if (!input) {
-                showError('Bitte gib mindestens einen Ordnerpfad ein');
+                showError(t('error_enter_path'));
                 return;
             }
 
-            // Unterstütze mehrere Pfade: durch Zeilenumbruch oder Semikolon getrennt
+            // Support multiple paths: separated by newline or semicolon
             const directories = input
                 .split(/[\n;]/)
                 .map(d => d.trim())
                 .filter(d => d.length > 0);
 
             if (directories.length === 0) {
-                showError('Bitte gib mindestens einen gültigen Ordnerpfad ein');
+                showError(t('error_valid_path'));
                 return;
             }
 
@@ -988,7 +1078,7 @@
             hideError();
 
             try {
-                // Setze Verzeichnisse
+                // Set directories
                 const response = await fetch('/api/set_directory', {
                     method: 'POST',
                     headers: {
@@ -1000,18 +1090,18 @@
                 const result = await response.json();
 
                 if (!response.ok) {
-                    throw new Error(result.error || 'Fehler beim Setzen der Verzeichnisse');
+                    throw new Error(result.error || t('error_setting_dirs'));
                 }
 
-                // Zeige Info über geladene Pfade
+                // Show info about loaded paths
                 if (result.invalid_paths && result.invalid_paths.length > 0) {
-                    console.warn('Ungültige Pfade ignoriert:', result.invalid_paths);
+                    console.warn('Invalid paths ignored:', result.invalid_paths);
                 }
 
-                // Lade Struktur
+                // Load structure
                 const structureResponse = await fetch('/api/structure');
                 if (!structureResponse.ok) {
-                    throw new Error('Fehler beim Laden der Struktur');
+                    throw new Error(t('error_loading'));
                 }
 
                 currentStructure = await structureResponse.json();
@@ -1075,14 +1165,14 @@
             const timeline = document.getElementById('timeline');
             timeline.innerHTML = '';
 
-            // Spezielle Bereiche
+            // Special sections
             if (structure.unknown_date.length > 0) {
-                const unknownSection = createSpecialSection('⚠️ Unbekannte Daten', structure.unknown_date);
+                const unknownSection = createSpecialSection(t('unknown_dates_section'), structure.unknown_date);
                 timeline.appendChild(unknownSection);
             }
 
             if (structure.invalid_date && structure.invalid_date.length > 0) {
-                const invalidSection = createCollapsibleSection('📅 Unrealistische Daten', structure.invalid_date);
+                const invalidSection = createCollapsibleSection(t('unrealistic_dates'), structure.invalid_date);
                 timeline.appendChild(invalidSection);
             }
 
@@ -1112,9 +1202,9 @@
         function createSpecialSection(title, files) {
             const section = document.createElement('div');
             section.className = 'special-section';
-            
+
             const header = document.createElement('h3');
-            header.textContent = `${title} (${files.length} Dateien)`;
+            header.textContent = `${title} (${files.length} ${t('files')})`;
             section.appendChild(header);
 
             const grid = createImageGrid(files);
@@ -1126,13 +1216,13 @@
         function createCollapsibleSection(title, files) {
             const section = document.createElement('div');
             section.className = 'special-section';
-            section.style.background = '#f0f9ff'; // Hellblaues Styling für ausklappbare Bereiche
+            section.style.background = '#f0f9ff';
             section.style.borderColor = '#bfdbfe';
 
             const header = document.createElement('div');
             header.className = 'year-header collapsed';
             header.style.background = 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)';
-            header.textContent = `${title} (${files.length} Dateien)`;
+            header.textContent = `${title} (${files.length} ${t('files')})`;
             header.addEventListener('click', () => toggleCollapsible(header, section));
 
             const gridContainer = document.createElement('div');
@@ -1249,10 +1339,10 @@
             let totalFiles = 0;
 
             if (data.images) {
-                // Monats-Sortierung
+                // Month sorting
                 allFiles = data.images || [];
                 totalFiles = allFiles.length;
-                stats.textContent = `${totalFiles} Dateien`;
+                stats.textContent = `${totalFiles} ${t('files')}`;
                 
                 // Auch bei Monats-Sortierung Tage anzeigen wenn showAllDays aktiv ist
                 if (showAllDays) {
@@ -1288,7 +1378,7 @@
                     }
                 });
                 
-                stats.textContent = `${totalFiles} Dateien in ${days.length} Tagen`;
+                stats.textContent = t('files_in_days').replace('{files}', totalFiles).replace('{days}', days.length);
                 
                 const daysPreview = document.createElement('div');
                 daysPreview.className = 'days-preview';
@@ -1436,13 +1526,13 @@
             timeline.innerHTML = '';
 
             const header = document.createElement('h2');
-            header.textContent = `📁 ${title} (${files.length} Dateien)`;
+            header.textContent = `📁 ${title} (${files.length} ${t('files')})`;
             header.style.marginBottom = '20px';
             header.style.color = '#4a5568';
 
             const backBtn = document.createElement('button');
             backBtn.className = 'btn btn-primary';
-            backBtn.textContent = '← Zurück';
+            backBtn.textContent = t('back');
             backBtn.style.marginBottom = '20px';
             backBtn.addEventListener('click', () => displayStructure(currentStructure));
 
@@ -1579,7 +1669,7 @@
         }
 
         function showLoading() {
-            document.getElementById('loading').textContent = 'Lade Medien...';
+            document.getElementById('loading').textContent = t('loading');
             document.getElementById('timeline').classList.add('hidden');
             document.getElementById('stats').classList.add('hidden');
         }
@@ -1625,9 +1715,9 @@
                 
                 header.textContent = title;
                 if (totalFiles > 4) {
-                    counter.textContent = `1-${maxPreviewFiles} von ${totalFiles} Dateien (← → zum Navigieren)`;
+                    counter.textContent = `1-${maxPreviewFiles} / ${totalFiles} ${t('files')} (${t('navigate_hint')})`;
                 } else {
-                    counter.textContent = `${totalFiles} ${totalFiles === 1 ? 'Datei' : 'Dateien'}`;
+                    counter.textContent = `${totalFiles} ${t('files')}`;
                 }
                 
                 // Grid mit optimaler Anzahl Dateien füllen
@@ -1692,7 +1782,7 @@
             const counter = document.getElementById('hoverPreviewCounter');
             const startPos = currentPreviewStartIndex + 1;
             const endPos = Math.min(currentPreviewStartIndex + maxPreviewFiles, totalFiles);
-            counter.textContent = `${startPos}-${endPos} von ${totalFiles} Dateien (← → zum Navigieren)`;
+            counter.textContent = `${startPos}-${endPos} / ${totalFiles} ${t('files')} (${t('navigate_hint')})`;
             
             updatePreviewGrid();
         }

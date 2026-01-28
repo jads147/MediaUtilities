@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Medien Timeline Viewer - Interaktiver horizontaler Zeitstrahl für sortierte Medien
+Media Timeline Viewer - Interactive horizontal timeline for sorted media
 """
 
 import tkinter as tk
@@ -16,18 +16,21 @@ from concurrent.futures import ThreadPoolExecutor
 import queue
 import time
 
-# Versuche OpenCV zu importieren für Video-Thumbnails
+# Import i18n
+from i18n import t, get_language, set_language, get_available_languages
+
+# Try to import OpenCV for video thumbnails
 try:
     import cv2
     HAS_OPENCV = True
 except ImportError:
     HAS_OPENCV = False
-    print("OpenCV nicht verfügbar - Video-Thumbnails werden als Platzhalter angezeigt")
+    print(t("opencv_not_available"))
 
 class TimelineViewer:
     def __init__(self, root):
         self.root = root
-        self.root.title("🎭 Medien Timeline Viewer - Horizontaler Zeitstrahl")
+        self.root.title(t("title_timeline"))
         self.root.geometry("1400x800")
         self.root.configure(bg='#2c3e50')
 
@@ -76,22 +79,33 @@ class TimelineViewer:
         self.root.focus_set()  # Fokus für Tastatur-Events
         
     def setup_ui(self):
-        """Erstellt die Benutzeroberfläche"""
-        # Hauptframe
+        """Creates the user interface"""
+        # Main frame
         main_frame = ttk.Frame(self.root)
         main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-        
-        # Kopfbereich
+
+        # Header area
         header_frame = ttk.Frame(main_frame)
         header_frame.pack(fill=tk.X, pady=(0, 10))
-        
-        # Titel
-        title_label = ttk.Label(header_frame, text="🎭 Medien Timeline Viewer", 
+
+        # Title
+        title_label = ttk.Label(header_frame, text=t("timeline_title_short"),
                                font=('Arial', 16, 'bold'))
         title_label.pack(side=tk.LEFT)
-        
-        # Ordner-Auswahl (unterstützt mehrere Ordner)
-        folder_frame = ttk.LabelFrame(main_frame, text="Ordner (mehrere möglich)", padding="5")
+
+        # Language selector
+        lang_frame = ttk.Frame(header_frame)
+        lang_frame.pack(side=tk.LEFT, padx=(20, 0))
+
+        ttk.Label(lang_frame, text="🌐").pack(side=tk.LEFT)
+        self.language_var = tk.StringVar(value="English" if get_language() == "en" else "Deutsch")
+        lang_combo = ttk.Combobox(lang_frame, textvariable=self.language_var,
+                                  values=["English", "Deutsch"], width=10, state="readonly")
+        lang_combo.pack(side=tk.LEFT, padx=(5, 0))
+        lang_combo.bind("<<ComboboxSelected>>", self.on_language_change)
+
+        # Folder selection (supports multiple folders)
+        folder_frame = ttk.LabelFrame(main_frame, text=t("folders_multiple"), padding="5")
         folder_frame.pack(fill=tk.X, pady=(0, 10))
 
         # Listbox für Ordner
@@ -105,22 +119,22 @@ class TimelineViewer:
         folder_scrollbar.pack(side=tk.LEFT, fill=tk.Y)
         self.folder_listbox.config(yscrollcommand=folder_scrollbar.set)
 
-        # Buttons für Ordner-Verwaltung
+        # Buttons for folder management
         btn_frame = ttk.Frame(list_frame)
         btn_frame.pack(side=tk.LEFT, padx=(5, 0))
 
-        ttk.Button(btn_frame, text="➕ Hinzufügen",
+        ttk.Button(btn_frame, text="➕ " + t("add"),
                   command=self.add_directory).pack(fill=tk.X, pady=1)
-        ttk.Button(btn_frame, text="➖ Entfernen",
+        ttk.Button(btn_frame, text="➖ " + t("remove"),
                   command=self.remove_directory).pack(fill=tk.X, pady=1)
-        ttk.Button(btn_frame, text="🔄 Laden",
+        ttk.Button(btn_frame, text="🔄 " + t("load"),
                   command=self.load_timeline).pack(fill=tk.X, pady=1)
-        
-        # Größen-Kontrollen
+
+        # Size controls
         size_frame = ttk.Frame(header_frame)
         size_frame.pack(side=tk.RIGHT, padx=(20, 0))
-        
-        ttk.Label(size_frame, text="Größe:").pack(side=tk.LEFT)
+
+        ttk.Label(size_frame, text=t("size")).pack(side=tk.LEFT)
         
         # Größen-Schieber
         self.size_scale_var = tk.DoubleVar(value=1.0)
@@ -133,18 +147,18 @@ class TimelineViewer:
         self.size_label = ttk.Label(size_frame, text="100%", width=6)
         self.size_label.pack(side=tk.LEFT, padx=5)
         
-        # Info-Panel
-        info_frame = ttk.LabelFrame(main_frame, text="Information", padding="5")
+        # Info panel
+        info_frame = ttk.LabelFrame(main_frame, text=t("information"), padding="5")
         info_frame.pack(fill=tk.X, pady=(0, 10))
-        
-        self.info_label = ttk.Label(info_frame, text="Wähle einen Ordner mit sortierten Medien aus")
+
+        self.info_label = ttk.Label(info_frame, text=t("select_folder_with_sorted_media"))
         self.info_label.pack(side=tk.LEFT)
-        
+
         self.stats_label = ttk.Label(info_frame, text="")
         self.stats_label.pack(side=tk.RIGHT)
-        
-        # Timeline-Frame
-        timeline_frame = ttk.LabelFrame(main_frame, text="Timeline", padding="5")
+
+        # Timeline frame
+        timeline_frame = ttk.LabelFrame(main_frame, text=t("timeline"), padding="5")
         timeline_frame.pack(fill=tk.BOTH, expand=True)
         
         # Timeline-Canvas mit Scrollbars
@@ -177,38 +191,44 @@ class TimelineViewer:
         self.timeline_canvas.bind("<MouseWheel>", self.on_mouse_wheel)
         self.timeline_canvas.bind("<Motion>", self.on_mouse_motion)
         
-        # Detail-Panel
-        detail_frame = ttk.LabelFrame(main_frame, text="Details", padding="5")
+        # Detail panel
+        detail_frame = ttk.LabelFrame(main_frame, text=t("details"), padding="5")
         detail_frame.pack(fill=tk.X, pady=(10, 0))
-        
-        self.detail_label = ttk.Label(detail_frame, text="Klicke auf einen Zeitraum für Details")
+
+        self.detail_label = ttk.Label(detail_frame, text=t("click_for_details"))
         self.detail_label.pack(side=tk.LEFT)
-        
-        # Navigation-Buttons
+
+        # Navigation buttons
         nav_frame = ttk.Frame(detail_frame)
         nav_frame.pack(side=tk.RIGHT, padx=(10, 0))
-        
-        ttk.Button(nav_frame, text="⬅️ Vorherige",
+
+        ttk.Button(nav_frame, text="⬅️ " + t("previous"),
                   command=self.navigate_thumbnails_left).pack(side=tk.LEFT, padx=2)
-        
+
         self.nav_label = ttk.Label(nav_frame, text="")
         self.nav_label.pack(side=tk.LEFT, padx=10)
-        
-        ttk.Button(nav_frame, text="Nächste ➡️",
+
+        ttk.Button(nav_frame, text=t("next") + " ➡️",
                   command=self.navigate_thumbnails_right).pack(side=tk.LEFT, padx=2)
-        
-        ttk.Button(nav_frame, text="🖼️ Bilder anzeigen",
+
+        ttk.Button(nav_frame, text="🖼️ " + t("show_images"),
                   command=self.show_selected_images).pack(side=tk.LEFT, padx=(10, 0))
         
+    def on_language_change(self, event=None):
+        """Handle language change"""
+        lang = "en" if self.language_var.get() == "English" else "de"
+        set_language(lang)
+        messagebox.showinfo(t("info"), "Please restart the application to apply the language change.")
+
     def add_directory(self):
-        """Fügt einen Ordner zur Liste hinzu"""
-        folder = filedialog.askdirectory(title="Ordner mit sortierten Medien auswählen")
+        """Adds a folder to the list"""
+        folder = filedialog.askdirectory(title=t("select_folder_title"))
         if folder and folder not in self.base_dirs:
             self.base_dirs.append(folder)
             self.folder_listbox.insert(tk.END, folder)
 
     def remove_directory(self):
-        """Entfernt den ausgewählten Ordner aus der Liste"""
+        """Removes the selected folder from the list"""
         selection = self.folder_listbox.curselection()
         if selection:
             index = selection[0]
@@ -216,18 +236,18 @@ class TimelineViewer:
             del self.base_dirs[index]
 
     def load_timeline(self):
-        """Lädt Timeline-Daten aus allen Ordnern"""
+        """Loads timeline data from all folders"""
         if not self.base_dirs:
-            messagebox.showerror("Fehler", "Bitte füge mindestens einen Ordner hinzu")
+            messagebox.showerror(t("error"), t("error_add_folder"))
             return
 
-        # Validiere alle Ordner
+        # Validate all folders
         invalid_dirs = [d for d in self.base_dirs if not os.path.exists(d)]
         if invalid_dirs:
-            messagebox.showerror("Fehler", f"Ungültige Ordner: {', '.join(invalid_dirs)}")
+            messagebox.showerror(t("error"), t("error_invalid_folders", folders=', '.join(invalid_dirs)))
             return
 
-        self.info_label.config(text="Lade Timeline-Daten...")
+        self.info_label.config(text=t("loading_timeline"))
         self.root.update()
 
         # Lade Daten in separatem Thread
@@ -244,7 +264,7 @@ class TimelineViewer:
             self.root.after(0, self._timeline_data_loaded, timeline_data)
 
         except Exception as e:
-            self.root.after(0, lambda: messagebox.showerror("Fehler", f"Fehler beim Laden: {str(e)}"))
+            self.root.after(0, lambda: messagebox.showerror(t("error"), t("error_loading", error=str(e))))
             
     def _timeline_data_loaded(self, timeline_data):
         """Callback wenn Timeline-Daten geladen wurden"""
@@ -255,8 +275,8 @@ class TimelineViewer:
         total_files = sum(len(data.get('files', [])) for data in timeline_data.values())
         total_periods = len(timeline_data)
         
-        self.stats_label.config(text=f"{total_files} Medien in {total_periods} Zeiträumen")
-        self.info_label.config(text="Timeline geladen - verwende Größen-Schieber oder Ctrl+Mausrad für Größenanpassung")
+        self.stats_label.config(text=t("media_in_periods", files=total_files, periods=total_periods))
+        self.info_label.config(text=t("timeline_loaded"))
         
     def scan_directories(self, directories):
         """Scannt alle Verzeichnisse und erstellt kombinierte Timeline-Daten"""
@@ -449,7 +469,7 @@ class TimelineViewer:
         # Anzahl Dateien
         count_text = self.timeline_canvas.create_text(
             x + item_width/2, y + item_height - 25,
-            text=f"{data['count']} Medien", fill='#7f8c8d',
+            text=t("media_count", count=data['count']), fill='#7f8c8d',
             font=('Arial', int(12 * self.size_scale)),
             tags=f"item_{key}"
         )
@@ -849,33 +869,33 @@ class TimelineViewer:
         # Detail-Info aktualisieren
         data = item['data']
         self.detail_label.config(
-            text=f"Ausgewählt: {data['month']} {data['year']} - {data['count']} Medien"
+            text=t("selected_period", month=data['month'], year=data['year'], count=data['count'])
         )
         
         # Navigation-Info aktualisieren
         self.update_navigation_info()
         
     def deselect_timeline_item(self):
-        """Entfernt Timeline-Auswahl"""
+        """Removes timeline selection"""
         self.timeline_canvas.delete("selection")
         self.selected_item = None
         self.selected_thumbnail_offset = 0
-        self.detail_label.config(text="Klicke auf einen Zeitraum für Details")
+        self.detail_label.config(text=t("click_for_details"))
         self.nav_label.config(text="")
         
     def show_selected_images(self):
-        """Zeigt ausgewählte Bilder in neuem Fenster"""
+        """Shows selected images in new window"""
         if not self.selected_item:
-            messagebox.showinfo("Info", "Bitte wähle zuerst einen Zeitraum aus")
+            messagebox.showinfo(t("info"), t("select_period_first"))
             return
             
         # Öffne Bilder-Viewer-Fenster
         self.open_image_viewer(self.selected_item['data'])
         
     def open_image_viewer(self, data):
-        """Öffnet Bilder-Viewer für gewählten Zeitraum"""
+        """Opens image viewer for selected period"""
         viewer_window = tk.Toplevel(self.root)
-        viewer_window.title(f"Medien Viewer - {data['month']} {data['year']}")
+        viewer_window.title(f"{t('media_viewer')} - {data['month']} {data['year']}")
         viewer_window.geometry("800x600")
 
         frame = ttk.Frame(viewer_window, padding="10")
@@ -899,10 +919,10 @@ class TimelineViewer:
         for file_path in data['files']:
             listbox.insert(tk.END, file_path.name)
 
-        # Kontextmenü erstellen
+        # Create context menu
         context_menu = tk.Menu(listbox, tearoff=0)
-        context_menu.add_command(label="Öffnen", command=lambda: self._open_selected_file(listbox, data))
-        context_menu.add_command(label="Im Ordner anzeigen", command=lambda: self._show_in_folder(listbox, data))
+        context_menu.add_command(label=t("open_file"), command=lambda: self._open_selected_file(listbox, data))
+        context_menu.add_command(label=t("show_in_folder"), command=lambda: self._show_in_folder(listbox, data))
 
         def show_context_menu(event):
             # Wähle Item unter dem Cursor aus
@@ -990,7 +1010,7 @@ class TimelineViewer:
         current_start = self.selected_thumbnail_offset + 1
         current_end = min(self.selected_thumbnail_offset + self.max_thumbnails, total_files)
         
-        self.nav_label.config(text=f"{current_start}-{current_end} von {total_files}")
+        self.nav_label.config(text=t("showing_range", start=current_start, end=current_end, total=total_files))
 
     def on_closing(self):
         """Beim Schließen des Fensters"""
