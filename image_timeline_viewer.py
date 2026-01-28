@@ -7,6 +7,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from PIL import Image, ImageTk
 import os
+import subprocess
 from pathlib import Path
 from datetime import datetime
 import threading
@@ -29,9 +30,10 @@ class TimelineViewer:
         self.root.title("🎭 Medien Timeline Viewer - Horizontaler Zeitstrahl")
         self.root.geometry("1400x800")
         self.root.configure(bg='#2c3e50')
-        
+
         # Variablen
-        self.base_dir = tk.StringVar()
+        self.base_dirs = []  # Liste von Ordnern (unterstützt mehrere)
+        self.dir_entry_var = tk.StringVar()  # Für das Eingabefeld
         self.timeline_data = {}
         self.timeline_items = []  # (year, month, day, files, x_pos, item_width)
         self.thumbnail_cache = {}
@@ -88,17 +90,31 @@ class TimelineViewer:
                                font=('Arial', 16, 'bold'))
         title_label.pack(side=tk.LEFT)
         
-        # Ordner-Auswahl
-        ttk.Label(header_frame, text="Ordner:").pack(side=tk.LEFT, padx=(20, 5))
-        
-        dir_entry = ttk.Entry(header_frame, textvariable=self.base_dir, width=50)
-        dir_entry.pack(side=tk.LEFT, padx=5)
-        
-        ttk.Button(header_frame, text="📁 Durchsuchen", 
-                  command=self.browse_directory).pack(side=tk.LEFT, padx=5)
-        
-        ttk.Button(header_frame, text="🔄 Laden", 
-                  command=self.load_timeline).pack(side=tk.LEFT, padx=5)
+        # Ordner-Auswahl (unterstützt mehrere Ordner)
+        folder_frame = ttk.LabelFrame(main_frame, text="Ordner (mehrere möglich)", padding="5")
+        folder_frame.pack(fill=tk.X, pady=(0, 10))
+
+        # Listbox für Ordner
+        list_frame = ttk.Frame(folder_frame)
+        list_frame.pack(fill=tk.X, expand=True)
+
+        self.folder_listbox = tk.Listbox(list_frame, height=3, selectmode=tk.SINGLE)
+        self.folder_listbox.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5))
+
+        folder_scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.folder_listbox.yview)
+        folder_scrollbar.pack(side=tk.LEFT, fill=tk.Y)
+        self.folder_listbox.config(yscrollcommand=folder_scrollbar.set)
+
+        # Buttons für Ordner-Verwaltung
+        btn_frame = ttk.Frame(list_frame)
+        btn_frame.pack(side=tk.LEFT, padx=(5, 0))
+
+        ttk.Button(btn_frame, text="➕ Hinzufügen",
+                  command=self.add_directory).pack(fill=tk.X, pady=1)
+        ttk.Button(btn_frame, text="➖ Entfernen",
+                  command=self.remove_directory).pack(fill=tk.X, pady=1)
+        ttk.Button(btn_frame, text="🔄 Laden",
+                  command=self.load_timeline).pack(fill=tk.X, pady=1)
         
         # Größen-Kontrollen
         size_frame = ttk.Frame(header_frame)
@@ -184,35 +200,49 @@ class TimelineViewer:
         ttk.Button(nav_frame, text="🖼️ Bilder anzeigen",
                   command=self.show_selected_images).pack(side=tk.LEFT, padx=(10, 0))
         
-    def browse_directory(self):
-        """Durchsucht Verzeichnis"""
+    def add_directory(self):
+        """Fügt einen Ordner zur Liste hinzu"""
         folder = filedialog.askdirectory(title="Ordner mit sortierten Medien auswählen")
-        if folder:
-            self.base_dir.set(folder)
-            
+        if folder and folder not in self.base_dirs:
+            self.base_dirs.append(folder)
+            self.folder_listbox.insert(tk.END, folder)
+
+    def remove_directory(self):
+        """Entfernt den ausgewählten Ordner aus der Liste"""
+        selection = self.folder_listbox.curselection()
+        if selection:
+            index = selection[0]
+            self.folder_listbox.delete(index)
+            del self.base_dirs[index]
+
     def load_timeline(self):
-        """Lädt Timeline-Daten"""
-        directory = self.base_dir.get().strip()
-        if not directory or not os.path.exists(directory):
-            messagebox.showerror("Fehler", "Bitte wähle einen gültigen Ordner aus")
+        """Lädt Timeline-Daten aus allen Ordnern"""
+        if not self.base_dirs:
+            messagebox.showerror("Fehler", "Bitte füge mindestens einen Ordner hinzu")
             return
-            
+
+        # Validiere alle Ordner
+        invalid_dirs = [d for d in self.base_dirs if not os.path.exists(d)]
+        if invalid_dirs:
+            messagebox.showerror("Fehler", f"Ungültige Ordner: {', '.join(invalid_dirs)}")
+            return
+
         self.info_label.config(text="Lade Timeline-Daten...")
         self.root.update()
-        
+
         # Lade Daten in separatem Thread
-        thread = threading.Thread(target=self._load_timeline_data, args=(directory,))
+        thread = threading.Thread(target=self._load_timeline_data, args=(self.base_dirs,))
         thread.daemon = True
         thread.start()
         
-    def _load_timeline_data(self, directory):
-        """Lädt Timeline-Daten im Hintergrund"""
+    def _load_timeline_data(self, directories):
+        """Lädt Timeline-Daten im Hintergrund aus allen Ordnern"""
         try:
-            timeline_data = self.scan_directory(directory)
-            
+            timeline_data = self.scan_directories(directories)
+
             # Aktualisiere UI im Hauptthread
             self.root.after(0, self._timeline_data_loaded, timeline_data)
-            
+
         except Exception as e:
             self.root.after(0, lambda: messagebox.showerror("Fehler", f"Fehler beim Laden: {str(e)}"))
             
@@ -228,68 +258,78 @@ class TimelineViewer:
         self.stats_label.config(text=f"{total_files} Medien in {total_periods} Zeiträumen")
         self.info_label.config(text="Timeline geladen - verwende Größen-Schieber oder Ctrl+Mausrad für Größenanpassung")
         
-    def scan_directory(self, directory):
-        """Scannt Verzeichnis und erstellt Timeline-Daten"""
-        base_path = Path(directory)
+    def scan_directories(self, directories):
+        """Scannt alle Verzeichnisse und erstellt kombinierte Timeline-Daten"""
         timeline_data = {}
-        
+
         # Unterstützte Medienformate
         image_formats = {'.jpg', '.jpeg', '.png', '.tiff', '.tif', '.bmp', '.gif', '.webp'}
         video_formats = {'.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm', '.m4v'}
         audio_formats = {'.mp3', '.wav', '.flac', '.aac', '.ogg', '.m4a', '.wma'}
         supported_formats = image_formats | video_formats | audio_formats
-        
-        # Scanne Jahre
-        for year_dir in base_path.iterdir():
-            if year_dir.is_dir() and year_dir.name.isdigit():
-                year = year_dir.name
-                
-                # Scanne Monate
-                for month_dir in year_dir.iterdir():
-                    if month_dir.is_dir() and not month_dir.name.startswith('_'):
-                        month = month_dir.name
-                        
-                        # Sammle alle Medien-Dateien
-                        files = []
-                        
-                        # Prüfe auf Tages-Struktur
-                        has_day_folders = any(
-                            item.is_dir() and item.name.lstrip('0').isdigit()
-                            for item in month_dir.iterdir()
-                        )
-                        
-                        if has_day_folders:
-                            # Tages-Struktur
-                            for day_dir in month_dir.iterdir():
-                                if day_dir.is_dir() and day_dir.name.lstrip('0').isdigit():
-                                    day_files = [
-                                        f for f in day_dir.iterdir()
-                                        if f.is_file() and f.suffix.lower() in supported_formats
-                                    ]
-                                    files.extend(day_files)
-                        else:
-                            # Monats-Struktur
-                            files = [
-                                f for f in month_dir.iterdir()
-                                if f.is_file() and f.suffix.lower() in supported_formats
-                            ]
-                        
-                        if files:
-                            period_key = f"{year}-{month}"
-                            timeline_data[period_key] = {
-                                'year': year,
-                                'month': month,
-                                'files': files,
-                                'count': len(files),
-                                'date': datetime.strptime(f"{year}-{month.split('-')[0]:0>2}", "%Y-%m")
-                            }
-        
+
+        # Scanne alle Ordner
+        for directory in directories:
+            base_path = Path(directory)
+            if not base_path.exists():
+                continue
+
+            # Scanne Jahre
+            for year_dir in base_path.iterdir():
+                if year_dir.is_dir() and year_dir.name.isdigit():
+                    year = year_dir.name
+
+                    # Scanne Monate
+                    for month_dir in year_dir.iterdir():
+                        if month_dir.is_dir() and not month_dir.name.startswith('_'):
+                            month = month_dir.name
+
+                            # Sammle alle Medien-Dateien
+                            files = []
+
+                            # Prüfe auf Tages-Struktur
+                            has_day_folders = any(
+                                item.is_dir() and item.name.lstrip('0').isdigit()
+                                for item in month_dir.iterdir()
+                            )
+
+                            if has_day_folders:
+                                # Tages-Struktur
+                                for day_dir in month_dir.iterdir():
+                                    if day_dir.is_dir() and day_dir.name.lstrip('0').isdigit():
+                                        day_files = [
+                                            f for f in day_dir.iterdir()
+                                            if f.is_file() and f.suffix.lower() in supported_formats
+                                        ]
+                                        files.extend(day_files)
+                            else:
+                                # Monats-Struktur
+                                files = [
+                                    f for f in month_dir.iterdir()
+                                    if f.is_file() and f.suffix.lower() in supported_formats
+                                ]
+
+                            if files:
+                                period_key = f"{year}-{month}"
+                                # Kombiniere mit bereits existierenden Daten
+                                if period_key in timeline_data:
+                                    timeline_data[period_key]['files'].extend(files)
+                                    timeline_data[period_key]['count'] += len(files)
+                                else:
+                                    timeline_data[period_key] = {
+                                        'year': year,
+                                        'month': month,
+                                        'files': files,
+                                        'count': len(files),
+                                        'date': datetime.strptime(f"{year}-{month.split('-')[0]:0>2}", "%Y-%m")
+                                    }
+
         # Sortiere nach Datum
         sorted_data = {}
-        for key in sorted(timeline_data.keys(), 
+        for key in sorted(timeline_data.keys(),
                          key=lambda x: timeline_data[x]['date']):
             sorted_data[key] = timeline_data[key]
-            
+
         return sorted_data
         
     def create_timeline(self):
@@ -837,39 +877,67 @@ class TimelineViewer:
         viewer_window = tk.Toplevel(self.root)
         viewer_window.title(f"Medien Viewer - {data['month']} {data['year']}")
         viewer_window.geometry("800x600")
-        
-        # Hier könnte eine Grid-Ansicht oder Slideshow implementiert werden
-        # Für jetzt: einfache Liste
-        
+
         frame = ttk.Frame(viewer_window, padding="10")
         frame.pack(fill=tk.BOTH, expand=True)
-        
-        ttk.Label(frame, text=f"{data['month']} {data['year']}", 
+
+        ttk.Label(frame, text=f"{data['month']} {data['year']}",
                  font=('Arial', 14, 'bold')).pack(pady=(0, 10))
-        
+
         # Scrollbare Liste
         list_frame = ttk.Frame(frame)
         list_frame.pack(fill=tk.BOTH, expand=True)
-        
+
         scrollbar = ttk.Scrollbar(list_frame)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        
+
         listbox = tk.Listbox(list_frame, yscrollcommand=scrollbar.set)
         listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.config(command=listbox.yview)
-        
+
         # Dateien hinzufügen
         for file_path in data['files']:
             listbox.insert(tk.END, file_path.name)
-        
+
+        # Kontextmenü erstellen
+        context_menu = tk.Menu(listbox, tearoff=0)
+        context_menu.add_command(label="Öffnen", command=lambda: self._open_selected_file(listbox, data))
+        context_menu.add_command(label="Im Ordner anzeigen", command=lambda: self._show_in_folder(listbox, data))
+
+        def show_context_menu(event):
+            # Wähle Item unter dem Cursor aus
+            index = listbox.nearest(event.y)
+            if index >= 0:
+                listbox.selection_clear(0, tk.END)
+                listbox.selection_set(index)
+                listbox.activate(index)
+                context_menu.tk_popup(event.x_root, event.y_root)
+
+        listbox.bind("<Button-3>", show_context_menu)
+
         # Doppelklick zum Öffnen
         def open_file(event):
             selection = listbox.curselection()
             if selection:
                 file_path = data['files'][selection[0]]
                 os.startfile(file_path)  # Windows
-                
+
         listbox.bind("<Double-Button-1>", open_file)
+
+    def _open_selected_file(self, listbox, data):
+        """Öffnet die ausgewählte Datei"""
+        selection = listbox.curselection()
+        if selection:
+            file_path = data['files'][selection[0]]
+            os.startfile(file_path)
+
+    def _show_in_folder(self, listbox, data):
+        """Öffnet den Ordner der ausgewählten Datei im Explorer"""
+        selection = listbox.curselection()
+        if selection:
+            file_path = data['files'][selection[0]]
+            # Windows Explorer öffnen und Datei markieren
+            subprocess.run(['explorer', '/select,', str(file_path)])
         
     def navigate_thumbnails_left(self, event=None):
         """Navigiert zu vorherigen Thumbnails"""
