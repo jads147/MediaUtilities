@@ -113,6 +113,9 @@ def scan_media_files(folder, recursive=True):
 
     # Sort based on settings
     sort_order = settings.get("sort_order", "oldest")
+    if isinstance(sort_order, str):
+        sort_order = sort_order.strip().lower()
+    print(f"[DEBUG] Sort order: '{sort_order}' (repr: {repr(sort_order)})")
 
     if sort_order == "random":
         import random
@@ -122,9 +125,18 @@ def scan_media_files(folder, recursive=True):
     elif sort_order == "newest":
         # Sort by modification time, newest first
         files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+        print(f"[DEBUG] Sorted newest first")
     else:  # oldest (default)
         # Sort by modification time, oldest first
         files.sort(key=lambda x: os.path.getmtime(x), reverse=False)
+        print(f"[DEBUG] Sorted oldest first")
+
+    # Show first few files with their dates for verification
+    if files:
+        print(f"[DEBUG] First 3 files after sorting:")
+        for f in files[:3]:
+            mtime = datetime.fromtimestamp(os.path.getmtime(f)).strftime('%Y-%m-%d %H:%M:%S')
+            print(f"  {Path(f).name}: {mtime}")
 
     return files
 
@@ -222,6 +234,7 @@ def init_session():
         # Continue existing session
         session_log = existing_log
         session_log["resumed"] = datetime.now().isoformat()
+        session_log["settings"] = settings.copy()  # Update with current settings
     else:
         # Start new session
         session_log = {
@@ -237,6 +250,7 @@ def init_session():
     # Debug output
     print(f"[DEBUG] Folder: {folder}")
     print(f"[DEBUG] Recursive: {settings['recursive']}")
+    print(f"[DEBUG] Sort order: {settings['sort_order']}")
     print(f"[DEBUG] Allowed formats: {len(get_allowed_formats())} types")
     print(f"[DEBUG] Files found: {len(all_files)}")
     if all_files:
@@ -314,6 +328,13 @@ def get_current():
     except:
         size_str = ""
 
+    # Get file date
+    try:
+        file_mtime = os.path.getmtime(filepath)
+        file_date = datetime.fromtimestamp(file_mtime).strftime('%Y-%m-%d %H:%M')
+    except:
+        file_date = ""
+
     return jsonify({
         "done": False,
         "index": current_index,
@@ -323,6 +344,7 @@ def get_current():
         "relative_path": relative_path,
         "media_type": media_type,
         "file_size": size_str,
+        "file_date": file_date,
         "remaining": len(media_files) - current_index,
         "stats": stats
     })

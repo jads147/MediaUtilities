@@ -381,6 +381,22 @@
             font-size: 80px;
         }
 
+        /* File Date Overlay (top) */
+        .file-date-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 12px 15px;
+            background: linear-gradient(rgba(0,0,0,0.7), transparent);
+            font-size: 14px;
+            font-weight: 500;
+            color: #fff;
+            text-align: center;
+            z-index: 5;
+            pointer-events: none;
+        }
+
         /* File Info Overlay */
         .file-info {
             position: absolute;
@@ -768,6 +784,7 @@
             </div>
 
             <div class="media-card hidden" id="mediaCard">
+                <div class="file-date-overlay" id="fileDateOverlay"></div>
                 <div class="action-indicator indicator-keep" id="indicatorKeep">KEEP</div>
                 <div class="action-indicator indicator-trash">TRASH</div>
                 <div class="media-content" id="mediaContent"></div>
@@ -990,6 +1007,10 @@
 
         // Get current settings
         function getSettings() {
+            const sortOrderEl = document.querySelector('#sortOrder .radio-item.active');
+            const sortOrder = sortOrderEl ? sortOrderEl.dataset.value : 'oldest';
+            console.log('[DEBUG] Sort order element:', sortOrderEl);
+            console.log('[DEBUG] Sort order value:', sortOrder);
             return {
                 recursive: document.getElementById('recursive').checked,
                 skip_already_swiped: document.getElementById('skipSwiped').checked,
@@ -997,7 +1018,7 @@
                 include_raw: document.getElementById('includeRaw').checked,
                 include_video: document.getElementById('includeVideo').checked,
                 include_audio: document.getElementById('includeAudio').checked,
-                sort_order: document.querySelector('#sortOrder .radio-item.active').dataset.value
+                sort_order: sortOrder
             };
         }
 
@@ -1167,6 +1188,7 @@
             filename.textContent = data.filename;
             filePath.textContent = data.relative_path !== data.filename ? data.relative_path : '';
             fileSize.textContent = data.file_size || '';
+            document.getElementById('fileDateOverlay').textContent = data.file_date || '';
 
             // Create appropriate media element
             let html = '';
