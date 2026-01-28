@@ -229,6 +229,7 @@ TRANSLATIONS = {
         "media_viewer": "Media Viewer",
 
         # Status messages
+        "media_count": "{count} media",
         "select_folder_with_sorted_media": "Select a folder with sorted media",
         "click_for_details": "Click on a period for details",
         "loading_timeline": "Loading timeline data...",
@@ -567,6 +568,7 @@ TRANSLATIONS = {
         "media_viewer": "Medien Viewer",
 
         # Status messages
+        "media_count": "{count} Medien",
         "select_folder_with_sorted_media": "Wähle einen Ordner mit sortierten Medien aus",
         "click_for_details": "Klicke auf einen Zeitraum für Details",
         "loading_timeline": "Lade Timeline-Daten...",
