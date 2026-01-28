@@ -54,6 +54,17 @@ if exist "image_viewer_web.py" (
     )
 )
 
+REM 4. Media Swiper
+if exist "media_swiper.py" (
+    echo 👆 Erstelle Media Swiper...
+    pyinstaller --onefile --name "MediaSorter_Swiper" --distpath "./dist" --add-data "templates;templates" media_swiper.py
+    if %errorlevel% neq 0 (
+        echo ❌ Fehler beim Erstellen der Swiper-EXE
+    ) else (
+        echo ✅ MediaSorter_Swiper.exe erstellt
+    )
+)
+
 REM Hash Manager ist jetzt vollständig in die GUI integriert!
 
 echo.
@@ -67,6 +78,7 @@ echo.
 echo Zum Testen:
 echo   - Doppelklick auf MediaSorter_GUI.exe (mit integriertem Hash-Manager)
 echo   - Timeline: MediaSorter_Timeline.exe
+echo   - Swiper: MediaSorter_Swiper.exe
 echo.
 
 REM Cleanup (optional)

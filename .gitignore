@@ -1,0 +1,22 @@
+# Build outputs
+dist/
+build/
+*.spec
+dist.zip
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+*.egg-info/
+.eggs/
+
+# IDE
+.vscode/
+.idea/
+
+# Environment
+.env
+venv/
+.venv/
