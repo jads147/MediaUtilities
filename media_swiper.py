@@ -17,6 +17,8 @@ from pathlib import Path
 from flask import Flask, render_template, jsonify, request, send_file
 import mimetypes
 
+import re
+
 # Import i18n for language settings
 try:
     from i18n import set_language, get_language
@@ -71,6 +73,20 @@ def get_media_type(filepath):
     return "unknown"
 
 
+def get_date_from_path(filepath):
+    """Extract date from folder path (expects YEAR/MM-Month/DD structure)."""
+    parts = Path(filepath).parts
+    # Look for pattern: YYYY / MM-MonthName / DD
+    for i, part in enumerate(parts):
+        if re.match(r'^\d{4}$', part) and i + 2 < len(parts):
+            year = part
+            month_match = re.match(r'^(\d{2})-', parts[i + 1])
+            day_match = re.match(r'^(\d{2})$', parts[i + 2])
+            if month_match and day_match:
+                return f"{year}-{month_match.group(1)}-{day_match.group(1)}"
+    return None
+
+
 def get_allowed_formats():
     """Get allowed formats based on current settings."""
     formats = set()
@@ -123,20 +139,20 @@ def scan_media_files(folder, recursive=True):
     elif sort_order == "name":
         files.sort(key=lambda x: Path(x).name.lower())
     elif sort_order == "newest":
-        # Sort by modification time, newest first
-        files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+        # Sort by date from folder path, newest first
+        files.sort(key=lambda x: get_date_from_path(x) or "0000-00-00", reverse=True)
         print(f"[DEBUG] Sorted newest first")
     else:  # oldest (default)
-        # Sort by modification time, oldest first
-        files.sort(key=lambda x: os.path.getmtime(x), reverse=False)
+        # Sort by date from folder path, oldest first
+        files.sort(key=lambda x: get_date_from_path(x) or "9999-99-99", reverse=False)
         print(f"[DEBUG] Sorted oldest first")
 
     # Show first few files with their dates for verification
     if files:
         print(f"[DEBUG] First 3 files after sorting:")
         for f in files[:3]:
-            mtime = datetime.fromtimestamp(os.path.getmtime(f)).strftime('%Y-%m-%d %H:%M:%S')
-            print(f"  {Path(f).name}: {mtime}")
+            date = get_date_from_path(f) or "unknown"
+            print(f"  {Path(f).name}: {date}")
 
     return files
 
@@ -328,12 +344,8 @@ def get_current():
     except:
         size_str = ""
 
-    # Get file date
-    try:
-        file_mtime = os.path.getmtime(filepath)
-        file_date = datetime.fromtimestamp(file_mtime).strftime('%Y-%m-%d %H:%M')
-    except:
-        file_date = ""
+    # Get file date from folder path
+    file_date = get_date_from_path(filepath) or ""
 
     return jsonify({
         "done": False,
