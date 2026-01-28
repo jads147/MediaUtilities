@@ -74,9 +74,13 @@ def get_media_type(filepath):
 
 
 def get_date_from_path(filepath):
-    """Extract date from folder path (expects YEAR/MM-Month/DD structure)."""
+    """Extract date from folder path. Supports:
+    - YYYY/MM-Month/DD (e.g., 2021/02-February/17)
+    - MM-Month/YYYY (e.g., 02-February/2021)
+    """
     parts = Path(filepath).parts
-    # Look for pattern: YYYY / MM-MonthName / DD
+
+    # Pattern 1: YYYY / MM-MonthName / DD
     for i, part in enumerate(parts):
         if re.match(r'^\d{4}$', part) and i + 2 < len(parts):
             year = part
@@ -84,6 +88,15 @@ def get_date_from_path(filepath):
             day_match = re.match(r'^(\d{2})$', parts[i + 2])
             if month_match and day_match:
                 return f"{year}-{month_match.group(1)}-{day_match.group(1)}"
+
+    # Pattern 2: MM-MonthName / YYYY (no day)
+    for i, part in enumerate(parts):
+        month_match = re.match(r'^(\d{2})-', part)
+        if month_match and i + 1 < len(parts):
+            year_match = re.match(r'^(\d{4})$', parts[i + 1])
+            if year_match:
+                return f"{year_match.group(1)}-{month_match.group(1)}-01"
+
     return None
 
 
