@@ -81,11 +81,13 @@
             border: 2px solid rgba(255, 255, 255, 0.1);
             border-radius: 8px;
             font-size: 1rem;
-            min-width: 300px;
+            min-width: 400px;
+            min-height: 80px;
             transition: all 0.3s ease;
             background: rgba(255, 255, 255, 0.05);
             color: var(--text-primary);
             font-family: 'Fira Code', monospace;
+            resize: vertical;
         }
 
         .directory-input::placeholder {
@@ -833,8 +835,11 @@
         <div class="header">
             <h1>🎭 Medien Viewer</h1>
             <div class="directory-selector">
-                <input type="text" id="directoryInput" class="directory-input" 
-                       placeholder="Pfad zu sortierten Medien (z.B. C:\Sortierte_Medien)">
+                <div style="display: flex; flex-direction: column; gap: 5px;">
+                    <textarea id="directoryInput" class="directory-input"
+                           placeholder="Pfade zu sortierten Medien (ein Pfad pro Zeile)&#10;z.B.:&#10;C:\Sortierte_Medien&#10;D:\Backup\Fotos"></textarea>
+                    <small style="color: var(--text-muted); font-size: 0.8rem;">Mehrere Pfade: ein Pfad pro Zeile oder mit ; getrennt. Ctrl+Enter zum Laden.</small>
+                </div>
                 <button id="loadBtn" class="btn btn-primary">📁 Laden</button>
                 <div class="show-all-toggle">
                                     <input type="checkbox" id="showAllDays" class="toggle-checkbox">
@@ -913,7 +918,8 @@
         // Event Listeners
         document.getElementById('loadBtn').addEventListener('click', loadDirectory);
         document.getElementById('directoryInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') loadDirectory();
+            // Ctrl+Enter zum Laden (da Enter für neue Zeilen verwendet wird)
+            if (e.key === 'Enter' && e.ctrlKey) loadDirectory();
         });
         document.getElementById('showAllDays').addEventListener('change', function(e) {
             showAllDays = e.target.checked;
@@ -961,9 +967,20 @@
         });
 
         async function loadDirectory() {
-            const directory = document.getElementById('directoryInput').value.trim();
-            if (!directory) {
-                showError('Bitte gib einen Ordnerpfad ein');
+            const input = document.getElementById('directoryInput').value.trim();
+            if (!input) {
+                showError('Bitte gib mindestens einen Ordnerpfad ein');
+                return;
+            }
+
+            // Unterstütze mehrere Pfade: durch Zeilenumbruch oder Semikolon getrennt
+            const directories = input
+                .split(/[\n;]/)
+                .map(d => d.trim())
+                .filter(d => d.length > 0);
+
+            if (directories.length === 0) {
+                showError('Bitte gib mindestens einen gültigen Ordnerpfad ein');
                 return;
             }
 
@@ -971,18 +988,24 @@
             hideError();
 
             try {
-                // Setze Verzeichnis
+                // Setze Verzeichnisse
                 const response = await fetch('/api/set_directory', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ directory: directory })
+                    body: JSON.stringify({ directories: directories })
                 });
 
+                const result = await response.json();
+
                 if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Fehler beim Setzen des Verzeichnisses');
+                    throw new Error(result.error || 'Fehler beim Setzen der Verzeichnisse');
+                }
+
+                // Zeige Info über geladene Pfade
+                if (result.invalid_paths && result.invalid_paths.length > 0) {
+                    console.warn('Ungültige Pfade ignoriert:', result.invalid_paths);
                 }
 
                 // Lade Struktur

@@ -33,83 +33,100 @@ template_dir = get_resource_path('templates')
 app = Flask(__name__, template_folder=template_dir)
 
 class ImageViewer:
-    def __init__(self, base_path: str):
-        self.base_path = Path(base_path)
+    def __init__(self, base_paths: list):
+        # Unterstützt mehrere Pfade
+        if isinstance(base_paths, str):
+            base_paths = [base_paths]
+        self.base_paths = [Path(p.strip()) for p in base_paths if p.strip()]
         self.image_formats = {'.jpg', '.jpeg', '.png', '.tiff', '.tif', '.bmp', '.gif', '.webp'}
         self.raw_formats = {'.cr2', '.cr3', '.crw', '.nef', '.arw', '.dng', '.raf', '.orf', '.rw2', '.pef', '.srw', '.raw'}
         self.video_formats = {'.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm', '.m4v', '.3gp', '.mpg', '.mpeg'}
         self.audio_formats = {'.mp3', '.wav', '.flac', '.aac', '.ogg', '.m4a', '.wma', '.opus', '.aiff', '.alac'}
         self.supported_formats = self.image_formats | self.raw_formats | self.video_formats | self.audio_formats
+        # Mapping von relativen Pfaden zu absoluten Pfaden
+        self.path_mapping = {}
     
     def scan_directory(self):
-        """Scannt das Verzeichnis und erstellt eine Struktur"""
+        """Scannt alle Verzeichnisse und erstellt eine kombinierte Struktur"""
         structure = {
             'years': {},
             'unknown_date': [],
             'invalid_date': [],
             'total_files': 0
         }
-        
-        if not self.base_path.exists():
-            return structure
-        
-        # Scanne Jahre
-        for year_dir in self.base_path.iterdir():
-            if year_dir.is_dir() and year_dir.name.isdigit():
-                year = year_dir.name
-                structure['years'][year] = {}
-                
-                # Scanne Monate
-                for month_dir in year_dir.iterdir():
-                    if month_dir.is_dir() and not month_dir.name.startswith('_'):
-                        month = month_dir.name
-                        structure['years'][year][month] = {}
-                        
-                        # Prüfe ob Tages-Sortierung (flexiblere Erkennung)
-                        has_day_folders = any(
-                            item.is_dir() and (
-                                item.name.isdigit() or  # z.B. "1", "15"
-                                (item.name.isdigit() and len(item.name) <= 2) or  # z.B. "01", "02"
-                                item.name.lstrip('0').isdigit()  # z.B. "01", "02", "031"
+
+        # Scanne alle Basis-Pfade
+        for base_path in self.base_paths:
+            if not base_path.exists():
+                continue
+
+            # Scanne Jahre
+            for year_dir in base_path.iterdir():
+                if year_dir.is_dir() and year_dir.name.isdigit():
+                    year = year_dir.name
+                    if year not in structure['years']:
+                        structure['years'][year] = {}
+
+                    # Scanne Monate
+                    for month_dir in year_dir.iterdir():
+                        if month_dir.is_dir() and not month_dir.name.startswith('_'):
+                            month = month_dir.name
+                            if month not in structure['years'][year]:
+                                structure['years'][year][month] = {}
+
+                            # Prüfe ob Tages-Sortierung (flexiblere Erkennung)
+                            has_day_folders = any(
+                                item.is_dir() and (
+                                    item.name.isdigit() or  # z.B. "1", "15"
+                                    (item.name.isdigit() and len(item.name) <= 2) or  # z.B. "01", "02"
+                                    item.name.lstrip('0').isdigit()  # z.B. "01", "02", "031"
+                                )
+                                for item in month_dir.iterdir()
                             )
-                            for item in month_dir.iterdir()
-                        )
-                        
-                        if has_day_folders:
-                            # Tages-Sortierung
-                            for day_dir in month_dir.iterdir():
-                                if day_dir.is_dir() and (
-                                    day_dir.name.isdigit() or 
-                                    day_dir.name.lstrip('0').isdigit()
-                                ):
-                                    day = day_dir.name
-                                    images = self.get_images_in_folder(day_dir)
-                                    if images:  # Nur Tage mit Medien hinzufügen
-                                        structure['years'][year][month][day] = images
-                                        structure['total_files'] += len(images)
-                        else:
-                            # Monats-Sortierung
-                            images = self.get_images_in_folder(month_dir)
-                            if images:  # Nur Monate mit Medien hinzufügen
-                                structure['years'][year][month]['images'] = images
-                                structure['total_files'] += len(images)
-        
-        # Scanne spezielle Ordner
-        unknown_dir = self.base_path / '_unknown_date'
-        if unknown_dir.exists():
-            structure['unknown_date'] = self.get_images_in_folder(unknown_dir)
-            structure['total_files'] += len(structure['unknown_date'])
-        
-        # Invalid date wird separat behandelt, aber nicht in Gesamtstatistik gezählt
-        invalid_dir = self.base_path / '_invalid_date'
-        if invalid_dir.exists():
-            structure['invalid_date'] = self.get_images_in_folder(invalid_dir)
-            # Nicht zur total_files hinzufügen - wird als separater Bereich angezeigt
-        
+
+                            if has_day_folders:
+                                # Tages-Sortierung
+                                for day_dir in month_dir.iterdir():
+                                    if day_dir.is_dir() and (
+                                        day_dir.name.isdigit() or
+                                        day_dir.name.lstrip('0').isdigit()
+                                    ):
+                                        day = day_dir.name
+                                        images = self.get_images_in_folder(day_dir, base_path)
+                                        if images:  # Nur Tage mit Medien hinzufügen
+                                            if day not in structure['years'][year][month]:
+                                                structure['years'][year][month][day] = []
+                                            structure['years'][year][month][day].extend(images)
+                                            structure['total_files'] += len(images)
+                            else:
+                                # Monats-Sortierung
+                                images = self.get_images_in_folder(month_dir, base_path)
+                                if images:  # Nur Monate mit Medien hinzufügen
+                                    if 'images' not in structure['years'][year][month]:
+                                        structure['years'][year][month]['images'] = []
+                                    structure['years'][year][month]['images'].extend(images)
+                                    structure['total_files'] += len(images)
+
+            # Scanne spezielle Ordner
+            unknown_dir = base_path / '_unknown_date'
+            if unknown_dir.exists():
+                unknown_files = self.get_images_in_folder(unknown_dir, base_path)
+                structure['unknown_date'].extend(unknown_files)
+                structure['total_files'] += len(unknown_files)
+
+            # Invalid date wird separat behandelt, aber nicht in Gesamtstatistik gezählt
+            invalid_dir = base_path / '_invalid_date'
+            if invalid_dir.exists():
+                invalid_files = self.get_images_in_folder(invalid_dir, base_path)
+                structure['invalid_date'].extend(invalid_files)
+
         return structure
     
-    def get_images_in_folder(self, folder: Path):
+    def get_images_in_folder(self, folder: Path, base_path: Path = None):
         """Holt alle Medien aus einem Ordner"""
+        if base_path is None:
+            base_path = self.base_paths[0] if self.base_paths else folder
+
         files = []
         for file in folder.iterdir():
             if file.is_file() and file.suffix.lower() in self.supported_formats:
@@ -123,12 +140,18 @@ class ImageViewer:
                     media_type = "audio"
                 else:
                     media_type = "unknown"
-                
-                # Relativer Pfad für Web-Zugriff
-                rel_path = file.relative_to(self.base_path)
+
+                # Relativer Pfad für Web-Zugriff - mit Pfad-Index für eindeutige Zuordnung
+                rel_path = file.relative_to(base_path)
+                path_index = self.base_paths.index(base_path) if base_path in self.base_paths else 0
+                unique_path = f"{path_index}/{str(rel_path).replace(chr(92), '/')}"
+
+                # Speichere Mapping für späteres Serving
+                self.path_mapping[unique_path] = str(file)
+
                 files.append({
                     'name': file.name,
-                    'path': str(rel_path).replace('\\', '/'),
+                    'path': unique_path,
                     'size': file.stat().st_size,
                     'modified': datetime.fromtimestamp(file.stat().st_mtime).isoformat(),
                     'type': media_type
@@ -155,16 +178,37 @@ def get_structure():
 
 @app.route('/api/set_directory', methods=['POST'])
 def set_directory():
-    """API: Setzt das Basis-Verzeichnis"""
+    """API: Setzt die Basis-Verzeichnisse (unterstützt mehrere Pfade)"""
     global viewer
     data = request.json
-    directory = data.get('directory')
-    
-    if not directory or not os.path.exists(directory):
-        return jsonify({'error': 'Verzeichnis existiert nicht'}), 400
-    
-    viewer = ImageViewer(directory)
-    return jsonify({'success': True})
+    directories = data.get('directories', [])
+
+    # Rückwärtskompatibilität: einzelnes directory auch akzeptieren
+    if not directories and data.get('directory'):
+        directories = [data.get('directory')]
+
+    if not directories:
+        return jsonify({'error': 'Keine Verzeichnisse angegeben'}), 400
+
+    # Validiere alle Pfade
+    valid_dirs = []
+    invalid_dirs = []
+    for d in directories:
+        d = d.strip()
+        if d and os.path.exists(d):
+            valid_dirs.append(d)
+        elif d:
+            invalid_dirs.append(d)
+
+    if not valid_dirs:
+        return jsonify({'error': f'Keine gültigen Verzeichnisse gefunden. Ungültig: {", ".join(invalid_dirs)}'}), 400
+
+    viewer = ImageViewer(valid_dirs)
+    return jsonify({
+        'success': True,
+        'loaded_paths': valid_dirs,
+        'invalid_paths': invalid_dirs
+    })
 
 def extract_raw_thumbnail(file_path):
     """Extrahiert eingebettetes JPEG-Vorschaubild aus RAW-Datei"""
@@ -197,7 +241,16 @@ def serve_media(media_path):
     if not viewer:
         return "Kein Verzeichnis gesetzt", 400
 
-    full_path = viewer.base_path / media_path
+    # Verwende path_mapping für mehrere Pfade
+    if media_path in viewer.path_mapping:
+        full_path = Path(viewer.path_mapping[media_path])
+    else:
+        # Fallback: versuche ersten Pfad (Rückwärtskompatibilität)
+        if viewer.base_paths:
+            full_path = viewer.base_paths[0] / media_path
+        else:
+            return "Datei nicht gefunden", 404
+
     if not full_path.exists():
         return "Datei nicht gefunden", 404
 
@@ -223,8 +276,17 @@ def get_media_info(media_path):
     """API: Gibt Informationen über eine Medien-Datei zurück"""
     if not viewer:
         return jsonify({'error': 'Kein Verzeichnis gesetzt'}), 400
-    
-    full_path = viewer.base_path / media_path
+
+    # Verwende path_mapping für mehrere Pfade
+    if media_path in viewer.path_mapping:
+        full_path = Path(viewer.path_mapping[media_path])
+    else:
+        # Fallback: versuche ersten Pfad
+        if viewer.base_paths:
+            full_path = viewer.base_paths[0] / media_path
+        else:
+            return jsonify({'error': 'Datei nicht gefunden'}), 404
+
     if not full_path.exists():
         return jsonify({'error': 'Datei nicht gefunden'}), 404
     
