@@ -11,6 +11,7 @@ import shutil
 import logging
 from pathlib import Path
 from typing import List, Optional
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from PIL import Image
 import numpy as np
 
@@ -53,7 +54,8 @@ class RawConverter:
     def __init__(self, source_dir: str, output_dir: Optional[str], compression_level: int,
                  bit_depth: int, resize_mode: str, max_width: int, max_height: int,
                  resize_percentage: int, recursive: bool, color_profile: str,
-                 move_originals: bool, logger: logging.Logger, gui_callback):
+                 move_originals: bool, num_workers: int,
+                 logger: logging.Logger, gui_callback):
         self.source_dir = Path(source_dir)
         self.output_dir = Path(output_dir) if output_dir else None
         self.compression_level = compression_level
@@ -65,10 +67,13 @@ class RawConverter:
         self.recursive = recursive
         self.color_profile = color_profile
         self.move_originals = move_originals
+        self.num_workers = max(1, num_workers)
         self.logger = logger
         self.gui_callback = gui_callback
 
         self.is_running = True
+        self._lock = threading.Lock()
+        self._completed_count = 0
         self.converted_files: List[Path] = []
         self.failed_files: List[tuple] = []
         self.skipped_files: List[Path] = []
@@ -102,13 +107,14 @@ class RawConverter:
             return self.output_dir / relative / output_name
 
     def convert_single_file(self, raw_path: Path):
-        """Convert one RAW file to PNG."""
+        """Convert one RAW file to PNG, then move original if enabled."""
         output_path = self.build_output_path(raw_path)
 
         # Skip if output already exists
         if output_path.exists():
             self.logger.info(t("file_skipped", filename=raw_path.name))
-            self.skipped_files.append(raw_path)
+            with self._lock:
+                self.skipped_files.append(raw_path)
             return
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -130,9 +136,6 @@ class RawConverter:
 
         # Create Pillow image
         if self.bit_depth == 16:
-            # rawpy returns uint16 array for 16-bit
-            # Pillow needs mode 'I;16' per channel or we use 'RGB' with uint8
-            # For 16-bit PNG: convert channels individually
             img = Image.fromarray(rgb, mode='RGB')
         else:
             img = Image.fromarray(rgb)
@@ -148,31 +151,49 @@ class RawConverter:
         # Save as PNG
         img.save(str(output_path), 'PNG', compress_level=self.compression_level)
 
-        self.converted_files.append(raw_path)
+        with self._lock:
+            self.converted_files.append(raw_path)
         self.logger.info(t("file_converted", src=raw_path.name, dst=output_path.name))
 
-    def move_converted_originals(self):
-        """Move successfully converted RAW files to _converted subfolder."""
-        moved = 0
-        for raw_path in self.converted_files:
-            if not self.is_running:
-                break
-            try:
-                converted_dir = raw_path.parent / '_converted'
-                converted_dir.mkdir(exist_ok=True)
-                dest = converted_dir / raw_path.name
-                shutil.move(str(raw_path), str(dest))
-                self.logger.info(t("moving_file", filename=raw_path.name))
-                moved += 1
-            except PermissionError:
-                self.logger.error(t("error_permission", path=str(raw_path)))
-            except Exception as e:
-                self.logger.error(t("error_move_failed", filename=raw_path.name, error=str(e)))
-        if moved > 0:
-            self.logger.info(t("originals_moved", count=moved))
+        # Move original immediately after successful conversion
+        if self.move_originals:
+            self._move_single_original(raw_path)
+
+    def _move_single_original(self, raw_path: Path):
+        """Move a single RAW file to _converted subfolder."""
+        try:
+            converted_dir = raw_path.parent / '_converted'
+            converted_dir.mkdir(exist_ok=True)
+            dest = converted_dir / raw_path.name
+            shutil.move(str(raw_path), str(dest))
+        except PermissionError:
+            self.logger.error(t("error_permission", path=str(raw_path)))
+        except Exception as e:
+            self.logger.error(t("error_move_failed", filename=raw_path.name, error=str(e)))
+
+    def _process_file(self, raw_path: Path, total: int):
+        """Process a single file: convert + move. Called from thread pool."""
+        if not self.is_running:
+            return
+        self.gui_callback(self._completed_count, total,
+                          t("converting_file", filename=raw_path.name))
+        try:
+            self.convert_single_file(raw_path)
+        except PermissionError:
+            self.logger.error(t("error_permission", path=str(raw_path)))
+            with self._lock:
+                self.failed_files.append((raw_path, "Permission denied"))
+        except Exception as e:
+            self.logger.error(t("error_conversion_failed", filename=raw_path.name, error=str(e)))
+            with self._lock:
+                self.failed_files.append((raw_path, str(e)))
+        finally:
+            with self._lock:
+                self._completed_count += 1
+            self.gui_callback(self._completed_count, total, t("status_converting"))
 
     def run(self):
-        """Main execution: scan -> convert -> move originals."""
+        """Main execution: scan -> convert (parallel) -> move happens per-file."""
         self.logger.info(t("status_scanning"))
         raw_files = self.scan_for_raw_files()
         total = len(raw_files)
@@ -182,28 +203,24 @@ class RawConverter:
             self.gui_callback(0, 0, t("no_raw_files_found"))
             return
 
-        self.logger.info(f"Found {total} RAW file(s)")
+        self.logger.info(f"Found {total} RAW file(s) — using {self.num_workers} thread(s)")
         self.gui_callback(0, total, t("status_converting"))
+        self._completed_count = 0
 
-        for i, raw_path in enumerate(raw_files):
-            if not self.is_running:
-                break
-            self.gui_callback(i, total, t("converting_file", filename=raw_path.name))
-            try:
-                self.convert_single_file(raw_path)
-            except PermissionError:
-                self.logger.error(t("error_permission", path=str(raw_path)))
-                self.failed_files.append((raw_path, "Permission denied"))
-            except Exception as e:
-                self.logger.error(t("error_conversion_failed", filename=raw_path.name, error=str(e)))
-                self.failed_files.append((raw_path, str(e)))
+        with ThreadPoolExecutor(max_workers=self.num_workers) as executor:
+            futures = []
+            for raw_path in raw_files:
+                if not self.is_running:
+                    break
+                futures.append(executor.submit(self._process_file, raw_path, total))
 
-        self.gui_callback(total, total, t("status_converting"))
+            # Wait for completion, allow cancel
+            for future in as_completed(futures):
+                if not self.is_running:
+                    executor.shutdown(wait=False, cancel_futures=True)
+                    break
 
-        # Move originals if enabled
-        if self.move_originals and self.is_running and self.converted_files:
-            self.gui_callback(total, total, t("status_moving"))
-            self.move_converted_originals()
+        self.gui_callback(self._completed_count, total, t("status_complete"))
 
 
 class RawConverterGUI:
@@ -233,6 +250,7 @@ class RawConverterGUI:
         self.recursive_scan = tk.BooleanVar(value=False)
         self.color_profile = tk.StringVar(value="srgb")
         self.move_originals_var = tk.BooleanVar(value=True)
+        self.num_workers = tk.IntVar(value=os.cpu_count() or 4)
 
         # State
         self.is_running = False
@@ -378,6 +396,12 @@ class RawConverterGUI:
                         variable=self.recursive_scan).grid(row=0, column=0, sticky=tk.W, pady=1)
         ttk.Checkbutton(options_frame, text=t("move_originals"),
                         variable=self.move_originals_var).grid(row=1, column=0, sticky=tk.W, pady=1)
+
+        workers_frame = ttk.Frame(options_frame)
+        workers_frame.grid(row=2, column=0, sticky=tk.W, pady=1)
+        ttk.Label(workers_frame, text=t("num_workers_label")).pack(side=tk.LEFT)
+        ttk.Spinbox(workers_frame, from_=1, to=os.cpu_count() or 16,
+                     textvariable=self.num_workers, width=4).pack(side=tk.LEFT, padx=(5, 0))
 
         # === Buttons ===
         btn_frame = ttk.Frame(main_frame)
@@ -540,16 +564,17 @@ class RawConverterGUI:
                 recursive=self.recursive_scan.get(),
                 color_profile=self.color_profile.get(),
                 move_originals=self.move_originals_var.get(),
+                num_workers=self.num_workers.get(),
                 logger=self.logger,
                 gui_callback=self.update_progress
             )
             self.converter.is_running = self.is_running
             self.converter.run()
 
-            if self.is_running:
-                converted = len(self.converter.converted_files)
-                failed = len(self.converter.failed_files)
-                skipped = len(self.converter.skipped_files)
+            converted = len(self.converter.converted_files)
+            failed = len(self.converter.failed_files)
+            skipped = len(self.converter.skipped_files)
+            if converted > 0 or failed > 0:
                 summary = t("conversion_success_msg",
                             converted=converted, failed=failed, skipped=skipped)
                 self.root.after(0, lambda: messagebox.showinfo(t("conversion_summary"), summary))

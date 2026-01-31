@@ -395,6 +395,7 @@ TRANSLATIONS = {
         "options_raw": "Options",
         "recursive_scan": "Scan subfolders recursively",
         "move_originals": "Move originals to _converted subfolder",
+        "num_workers_label": "Parallel threads:",
 
         # Buttons
         "start_conversion": "Start Conversion",
@@ -813,6 +814,7 @@ TRANSLATIONS = {
         "options_raw": "Optionen",
         "recursive_scan": "Unterordner rekursiv scannen",
         "move_originals": "Originale nach _converted verschieben",
+        "num_workers_label": "Parallele Threads:",
 
         # Buttons
         "start_conversion": "Konvertierung starten",
