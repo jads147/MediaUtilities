@@ -2,3 +2,4 @@ Pillow>=9.0.0
 opencv-python>=4.5.0
 exifread>=3.0.0
 Flask>=2.3.0
+rawpy>=0.19.0

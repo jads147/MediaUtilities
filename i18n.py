@@ -353,6 +353,85 @@ TRANSLATIONS = {
         "debug_no_media": "NO MEDIA FOUND!",
         "debug_check_extensions": "Check if files with these extensions exist:",
         "debug_error": "ERROR: {error}",
+
+        # ============================================
+        # RAW TO PNG CONVERTER
+        # ============================================
+        "title_raw_converter": "RAW to PNG Converter",
+        "raw_converter_title_short": "RAW Converter",
+
+        # Folder selection
+        "source_folder_raw": "Source Folder (RAW Files):",
+        "output_folder_raw": "Output Folder (PNG):",
+        "select_source_folder_raw": "Select folder containing RAW files",
+        "select_output_folder_raw": "Select output folder for PNG files",
+        "same_as_source": "Same as source folder",
+        "output_mode_label": "Output Location",
+        "output_in_place": "Save PNG next to RAW file (in-place)",
+        "output_custom": "Save to separate output folder",
+
+        # Conversion settings
+        "conversion_settings": "Conversion Settings",
+        "png_compression": "PNG Compression (0-9):",
+        "compression_hint": "0 = no compression, 9 = max compression",
+        "bit_depth_label": "Bit Depth:",
+        "bit_depth_8": "8-bit (standard)",
+        "bit_depth_16": "16-bit (high quality)",
+        "color_profile_label": "Color Profile:",
+        "color_srgb": "sRGB (standard)",
+        "color_adobe_rgb": "Adobe RGB",
+        "color_preserve": "Camera profile",
+
+        # Resize options
+        "resize_options": "Resize Options",
+        "resize_none": "No resize (original dimensions)",
+        "resize_max_dim": "Maximum dimensions",
+        "resize_percentage": "Percentage",
+        "max_width_label": "Max Width:",
+        "max_height_label": "Max Height:",
+        "percentage_label": "Scale:",
+
+        # Options
+        "options_raw": "Options",
+        "recursive_scan": "Scan subfolders recursively",
+        "move_originals": "Move originals to _converted subfolder",
+
+        # Buttons
+        "start_conversion": "Start Conversion",
+        "stop_conversion": "Stop",
+        "clear_log": "Clear Log",
+
+        # Status
+        "status_ready": "Ready",
+        "status_scanning": "Scanning for RAW files...",
+        "status_converting": "Converting...",
+        "status_moving": "Moving originals...",
+        "status_complete": "Complete",
+        "status_stopped": "Stopped",
+        "conversion_stopped": "Conversion stopped by user.",
+        "converting_file": "Converting: {filename}",
+        "moving_file": "Moving: {filename}",
+        "files_progress": "{current} / {total} files",
+
+        # Results
+        "conversion_summary": "Conversion Complete",
+        "conversion_success_msg": "Converted: {converted}\nFailed: {failed}\nSkipped: {skipped}",
+        "no_raw_files_found": "No RAW files found in the selected folder.",
+        "originals_moved": "{count} original(s) moved to _converted",
+        "file_converted": "Converted: {src} -> {dst}",
+        "file_skipped": "Skipped (already exists): {filename}",
+
+        # Errors
+        "error_no_source_raw": "Please select a source folder.",
+        "error_no_output_raw": "Please select an output folder.",
+        "error_source_not_exists_raw": "Source folder does not exist.",
+        "error_rawpy_not_installed": "rawpy is not installed.\nInstall with: pip install rawpy",
+        "error_conversion_failed": "Failed: {filename} - {error}",
+        "error_permission": "Permission denied: {path}",
+        "error_move_failed": "Failed to move: {filename} - {error}",
+
+        # Supported formats
+        "supported_raw_formats": "Supported: CR2, CR3, NEF, ARW, DNG, ORF, RW2, PEF, SRW, RAF, and more",
     },
 
     "de": {
@@ -692,6 +771,85 @@ TRANSLATIONS = {
         "debug_no_media": "KEINE MEDIEN GEFUNDEN!",
         "debug_check_extensions": "Prüfe ob Dateien mit diesen Endungen existieren:",
         "debug_error": "FEHLER: {error}",
+
+        # ============================================
+        # RAW TO PNG CONVERTER
+        # ============================================
+        "title_raw_converter": "RAW zu PNG Konverter",
+        "raw_converter_title_short": "RAW Konverter",
+
+        # Ordnerauswahl
+        "source_folder_raw": "Quellordner (RAW-Dateien):",
+        "output_folder_raw": "Ausgabeordner (PNG):",
+        "select_source_folder_raw": "Ordner mit RAW-Dateien auswählen",
+        "select_output_folder_raw": "Ausgabeordner für PNG-Dateien auswählen",
+        "same_as_source": "Gleicher Ordner wie Quelle",
+        "output_mode_label": "Ausgabeort",
+        "output_in_place": "PNG neben RAW-Datei speichern (In-Place)",
+        "output_custom": "In separaten Ausgabeordner speichern",
+
+        # Konvertierungseinstellungen
+        "conversion_settings": "Konvertierungseinstellungen",
+        "png_compression": "PNG Kompression (0-9):",
+        "compression_hint": "0 = keine Kompression, 9 = max. Kompression",
+        "bit_depth_label": "Bit-Tiefe:",
+        "bit_depth_8": "8-Bit (Standard)",
+        "bit_depth_16": "16-Bit (hohe Qualität)",
+        "color_profile_label": "Farbprofil:",
+        "color_srgb": "sRGB (Standard)",
+        "color_adobe_rgb": "Adobe RGB",
+        "color_preserve": "Kameraprofil",
+
+        # Größenänderung
+        "resize_options": "Größenänderung",
+        "resize_none": "Keine Änderung (Originalgröße)",
+        "resize_max_dim": "Maximale Abmessungen",
+        "resize_percentage": "Prozent",
+        "max_width_label": "Max. Breite:",
+        "max_height_label": "Max. Höhe:",
+        "percentage_label": "Skalierung:",
+
+        # Optionen
+        "options_raw": "Optionen",
+        "recursive_scan": "Unterordner rekursiv scannen",
+        "move_originals": "Originale nach _converted verschieben",
+
+        # Buttons
+        "start_conversion": "Konvertierung starten",
+        "stop_conversion": "Stopp",
+        "clear_log": "Log löschen",
+
+        # Status
+        "status_ready": "Bereit",
+        "status_scanning": "Suche RAW-Dateien...",
+        "status_converting": "Konvertiere...",
+        "status_moving": "Verschiebe Originale...",
+        "status_complete": "Abgeschlossen",
+        "status_stopped": "Gestoppt",
+        "conversion_stopped": "Konvertierung vom Benutzer gestoppt.",
+        "converting_file": "Konvertiere: {filename}",
+        "moving_file": "Verschiebe: {filename}",
+        "files_progress": "{current} / {total} Dateien",
+
+        # Ergebnisse
+        "conversion_summary": "Konvertierung abgeschlossen",
+        "conversion_success_msg": "Konvertiert: {converted}\nFehlgeschlagen: {failed}\nÜbersprungen: {skipped}",
+        "no_raw_files_found": "Keine RAW-Dateien im ausgewählten Ordner gefunden.",
+        "originals_moved": "{count} Original(e) nach _converted verschoben",
+        "file_converted": "Konvertiert: {src} -> {dst}",
+        "file_skipped": "Übersprungen (existiert bereits): {filename}",
+
+        # Fehler
+        "error_no_source_raw": "Bitte Quellordner auswählen.",
+        "error_no_output_raw": "Bitte Ausgabeordner auswählen.",
+        "error_source_not_exists_raw": "Quellordner existiert nicht.",
+        "error_rawpy_not_installed": "rawpy ist nicht installiert.\nInstallieren mit: pip install rawpy",
+        "error_conversion_failed": "Fehlgeschlagen: {filename} - {error}",
+        "error_permission": "Zugriff verweigert: {path}",
+        "error_move_failed": "Verschieben fehlgeschlagen: {filename} - {error}",
+
+        # Unterstützte Formate
+        "supported_raw_formats": "Unterstützt: CR2, CR3, NEF, ARW, DNG, ORF, RW2, PEF, SRW, RAF und mehr",
     }
 }
 

@@ -50,6 +50,17 @@ if [ -f "image_viewer_web.py" ]; then
     fi
 fi
 
+# 5. RAW to PNG Converter
+if [ -f "raw_converter_gui.py" ]; then
+    echo "🔄 Erstelle RAW Converter..."
+    pyinstaller --onefile --windowed --name "MediaSorter_RawConverter" --distpath "./dist" raw_converter_gui.py
+    if [ $? -eq 0 ]; then
+        echo "✅ MediaSorter_RawConverter erstellt"
+    else
+        echo "❌ Fehler beim Erstellen der RawConverter-Anwendung"
+    fi
+fi
+
 # Hash Manager ist jetzt vollständig in die GUI integriert!
 
 echo

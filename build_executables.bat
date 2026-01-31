@@ -65,6 +65,17 @@ if exist "media_swiper.py" (
     )
 )
 
+REM 5. RAW to PNG Converter
+if exist "raw_converter_gui.py" (
+    echo 🔄 Erstelle RAW Converter...
+    pyinstaller --onefile --windowed --name "MediaSorter_RawConverter" --distpath "./dist" raw_converter_gui.py
+    if %errorlevel% neq 0 (
+        echo ❌ Fehler beim Erstellen der RawConverter-EXE
+    ) else (
+        echo ✅ MediaSorter_RawConverter.exe erstellt
+    )
+)
+
 REM Hash Manager ist jetzt vollständig in die GUI integriert!
 
 echo.
