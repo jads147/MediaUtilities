@@ -433,6 +433,38 @@ TRANSLATIONS = {
 
         # Supported formats
         "supported_raw_formats": "Supported: CR2, CR3, NEF, ARW, DNG, ORF, RW2, PEF, SRW, RAF, and more",
+
+        # Output format
+        "output_format_label": "Output Format:",
+        "format_png": "PNG (lossless)",
+        "format_jpeg": "JPEG (lossy, small)",
+        "format_webp": "WebP (lossy/lossless, smallest)",
+        "jpeg_quality_label": "JPEG Quality (1-100):",
+        "jpeg_quality_hint": "1 = lowest quality, 100 = highest quality",
+        "webp_quality_label": "WebP Quality (1-100):",
+        "webp_quality_hint": "1 = lowest quality, 100 = highest quality",
+
+        # Benchmark
+        "benchmark_btn": "Benchmark",
+        "benchmark_title": "Format Benchmark",
+        "benchmark_running": "Running benchmark ({current}/{total})...",
+        "benchmark_results_title": "Benchmark Results - Format Comparison",
+        "benchmark_avg_size": "Avg. Size",
+        "benchmark_avg_time": "Avg. Time",
+        "benchmark_total_estimate": "Est. Total ({count} files)",
+        "benchmark_delete_files": "Delete Benchmark Files",
+        "benchmark_close": "Close",
+        "benchmark_confirm_delete": "Delete all benchmark files?",
+        "benchmark_prev": "< Previous",
+        "benchmark_next": "Next >",
+        "benchmark_image_of": "Image {current} of {total}",
+        "benchmark_no_files": "No RAW files found for benchmark.",
+        "benchmark_complete": "Benchmark complete!",
+        "benchmark_sample_info": "Benchmark: {count} sample images in 3 formats",
+        "benchmark_format": "Format",
+        "benchmark_size": "Size",
+        "benchmark_time": "Time",
+        "benchmark_file_size": "{size}",
     },
 
     "de": {
@@ -852,6 +884,38 @@ TRANSLATIONS = {
 
         # Unterstützte Formate
         "supported_raw_formats": "Unterstützt: CR2, CR3, NEF, ARW, DNG, ORF, RW2, PEF, SRW, RAF und mehr",
+
+        # Ausgabeformat
+        "output_format_label": "Ausgabeformat:",
+        "format_png": "PNG (verlustfrei)",
+        "format_jpeg": "JPEG (verlustbehaftet, klein)",
+        "format_webp": "WebP (verlustbehaftet/frei, kleinste)",
+        "jpeg_quality_label": "JPEG Qualität (1-100):",
+        "jpeg_quality_hint": "1 = niedrigste Qualität, 100 = höchste Qualität",
+        "webp_quality_label": "WebP Qualität (1-100):",
+        "webp_quality_hint": "1 = niedrigste Qualität, 100 = höchste Qualität",
+
+        # Benchmark
+        "benchmark_btn": "Benchmark",
+        "benchmark_title": "Format Benchmark",
+        "benchmark_running": "Benchmark läuft ({current}/{total})...",
+        "benchmark_results_title": "Benchmark Ergebnisse - Formatvergleich",
+        "benchmark_avg_size": "Ø Größe",
+        "benchmark_avg_time": "Ø Zeit",
+        "benchmark_total_estimate": "Geschätzt gesamt ({count} Dateien)",
+        "benchmark_delete_files": "Benchmark-Dateien löschen",
+        "benchmark_close": "Schließen",
+        "benchmark_confirm_delete": "Alle Benchmark-Dateien löschen?",
+        "benchmark_prev": "< Zurück",
+        "benchmark_next": "Weiter >",
+        "benchmark_image_of": "Bild {current} von {total}",
+        "benchmark_no_files": "Keine RAW-Dateien für Benchmark gefunden.",
+        "benchmark_complete": "Benchmark abgeschlossen!",
+        "benchmark_sample_info": "Benchmark: {count} Beispielbilder in 3 Formaten",
+        "benchmark_format": "Format",
+        "benchmark_size": "Größe",
+        "benchmark_time": "Zeit",
+        "benchmark_file_size": "{size}",
     }
 }
 
