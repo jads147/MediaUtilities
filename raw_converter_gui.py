@@ -94,10 +94,12 @@ class RawConverter:
         self.skipped_files: List[Path] = []
 
     def scan_for_raw_files(self) -> List[Path]:
-        """Scan source directory for RAW files."""
+        """Scan source directory for RAW files, excluding _converted folders."""
         raw_files = []
         if self.recursive:
             for f in self.source_dir.rglob('*'):
+                if '_converted' in f.parts:
+                    continue
                 if f.suffix.lower() in SUPPORTED_RAW_EXTENSIONS and f.is_file():
                     raw_files.append(f)
         else:
@@ -129,6 +131,9 @@ class RawConverter:
             self.logger.info(t("file_skipped", filename=raw_path.name))
             with self._lock:
                 self.skipped_files.append(raw_path)
+            # Still move the original if requested
+            if self.move_originals:
+                self._move_single_original(raw_path)
             return
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -181,11 +186,17 @@ class RawConverter:
             self._move_single_original(raw_path)
 
     def _move_single_original(self, raw_path: Path):
-        """Move a single RAW file to _converted subfolder."""
+        """Move a single RAW file to _converted subfolder in the source root."""
         try:
-            converted_dir = raw_path.parent / '_converted'
-            converted_dir.mkdir(exist_ok=True)
-            dest = converted_dir / raw_path.name
+            converted_dir = self.source_dir / '_converted'
+            # Preserve subfolder structure for recursive scans
+            try:
+                relative = raw_path.parent.relative_to(self.source_dir)
+            except ValueError:
+                relative = Path()
+            dest_dir = converted_dir / relative
+            dest_dir.mkdir(parents=True, exist_ok=True)
+            dest = dest_dir / raw_path.name
             shutil.move(str(raw_path), str(dest))
         except PermissionError:
             self.logger.error(t("error_permission", path=str(raw_path)))
