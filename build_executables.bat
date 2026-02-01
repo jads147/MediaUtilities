@@ -76,6 +76,17 @@ if exist "raw_converter_gui.py" (
     )
 )
 
+REM 6. Image Compressor
+if exist "image_compressor_gui.py" (
+    echo Erstelle Image Compressor...
+    pyinstaller --onefile --windowed --name "MediaSorter_ImageCompressor" --distpath "./dist" image_compressor_gui.py
+    if %errorlevel% neq 0 (
+        echo Fehler beim Erstellen der ImageCompressor-EXE
+    ) else (
+        echo MediaSorter_ImageCompressor.exe erstellt
+    )
+)
+
 REM Hash Manager ist jetzt vollständig in die GUI integriert!
 
 echo.

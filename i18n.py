@@ -465,6 +465,56 @@ TRANSLATIONS = {
         "benchmark_size": "Size",
         "benchmark_time": "Time",
         "benchmark_file_size": "{size}",
+
+        # ============================================
+        # IMAGE COMPRESSOR
+        # ============================================
+        "title_compressor": "Image Compressor - Compress Images to Target Size",
+        "compressor_title_short": "Image Compressor",
+
+        # Folder selection
+        "source_folder_compress": "Source Folder (Images):",
+        "select_source_folder_compress": "Select folder containing images",
+
+        # Settings
+        "compression_settings": "Compression Settings",
+        "max_file_size_label": "Max. File Size (MB):",
+        "max_file_size_hint": "Target maximum file size per image in megabytes",
+
+        # Options
+        "options_compress": "Options",
+        "recursive_scan_compress": "Scan subfolders recursively",
+        "num_workers_compress": "Parallel threads:",
+
+        # Buttons
+        "start_compression": "Start Compression",
+        "stop_compression": "Stop",
+
+        # Status
+        "status_scanning_images": "Scanning for images...",
+        "status_compressing": "Compressing...",
+        "status_compress_complete": "Complete",
+        "status_compress_stopped": "Stopped",
+        "compression_stopped": "Compression stopped by user.",
+        "compressing_file": "Compressing: {filename}",
+        "files_progress_compress": "{current} / {total} files",
+
+        # Results
+        "compression_summary": "Compression Complete",
+        "compression_success_msg": "Compressed: {compressed}\nAlready small: {skipped}\nFailed: {failed}\nTotal saved: {saved}",
+        "no_images_found": "No images found in the selected folder.",
+        "file_compressed": "Compressed: {filename} ({old_size} -> {new_size}, quality {quality})",
+        "file_already_small": "Already small: {filename} ({size})",
+        "file_not_jpeg_renamed": "Converted: {old_name} -> {new_name}",
+
+        # Errors
+        "error_no_source_compress": "Please select a source folder.",
+        "error_source_not_exists_compress": "Source folder does not exist.",
+        "error_compression_failed": "Failed: {filename} - {error}",
+
+        # Supported formats
+        "supported_image_formats": "Supported: JPG, PNG, BMP, TIFF, WebP, GIF",
+        "target_size_unreachable": "Could not reach target size: {filename} (smallest: {size} at quality 1)",
     },
 
     "de": {
@@ -916,6 +966,56 @@ TRANSLATIONS = {
         "benchmark_size": "Größe",
         "benchmark_time": "Zeit",
         "benchmark_file_size": "{size}",
+
+        # ============================================
+        # IMAGE COMPRESSOR
+        # ============================================
+        "title_compressor": "Bild Kompressor - Bilder auf Zielgröße komprimieren",
+        "compressor_title_short": "Bild Kompressor",
+
+        # Ordnerauswahl
+        "source_folder_compress": "Quellordner (Bilder):",
+        "select_source_folder_compress": "Ordner mit Bildern auswählen",
+
+        # Einstellungen
+        "compression_settings": "Kompressionseinstellungen",
+        "max_file_size_label": "Max. Dateigröße (MB):",
+        "max_file_size_hint": "Maximale Zieldateigröße pro Bild in Megabyte",
+
+        # Optionen
+        "options_compress": "Optionen",
+        "recursive_scan_compress": "Unterordner rekursiv scannen",
+        "num_workers_compress": "Parallele Threads:",
+
+        # Buttons
+        "start_compression": "Kompression starten",
+        "stop_compression": "Stopp",
+
+        # Status
+        "status_scanning_images": "Suche Bilder...",
+        "status_compressing": "Komprimiere...",
+        "status_compress_complete": "Abgeschlossen",
+        "status_compress_stopped": "Gestoppt",
+        "compression_stopped": "Kompression vom Benutzer gestoppt.",
+        "compressing_file": "Komprimiere: {filename}",
+        "files_progress_compress": "{current} / {total} Dateien",
+
+        # Ergebnisse
+        "compression_summary": "Kompression abgeschlossen",
+        "compression_success_msg": "Komprimiert: {compressed}\nBereits klein: {skipped}\nFehlgeschlagen: {failed}\nGesamt gespart: {saved}",
+        "no_images_found": "Keine Bilder im ausgewählten Ordner gefunden.",
+        "file_compressed": "Komprimiert: {filename} ({old_size} -> {new_size}, Qualität {quality})",
+        "file_already_small": "Bereits klein: {filename} ({size})",
+        "file_not_jpeg_renamed": "Konvertiert: {old_name} -> {new_name}",
+
+        # Fehler
+        "error_no_source_compress": "Bitte Quellordner auswählen.",
+        "error_source_not_exists_compress": "Quellordner existiert nicht.",
+        "error_compression_failed": "Fehlgeschlagen: {filename} - {error}",
+
+        # Unterstützte Formate
+        "supported_image_formats": "Unterstützt: JPG, PNG, BMP, TIFF, WebP, GIF",
+        "target_size_unreachable": "Zielgröße nicht erreichbar: {filename} (kleinste: {size} bei Qualität 1)",
     }
 }
 
