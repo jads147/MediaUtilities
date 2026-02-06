@@ -1221,13 +1221,35 @@
             document.getElementById('finalTrashed').textContent = stats.trashed;
         }
 
+        // Release media elements so file handles are freed (important on Windows)
+        function releaseMedia() {
+            const audio = mediaContent.querySelector('audio');
+            const video = mediaContent.querySelector('video');
+            if (audio) {
+                audio.pause();
+                audio.removeAttribute('src');
+                audio.load();
+            }
+            if (video) {
+                video.pause();
+                video.removeAttribute('src');
+                video.load();
+            }
+        }
+
         // Actions
         async function performAction(action) {
             if (isProcessing) return;
             isProcessing = true;
 
+            // Release media file handles before moving
+            releaseMedia();
+
             // Animate card
             mediaCard.classList.add(action === 'trash' ? 'swiping-left' : 'swiping-right');
+
+            // Small delay to let file handles close
+            await new Promise(r => setTimeout(r, 50));
 
             // Send action to server
             try {
