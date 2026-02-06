@@ -16,6 +16,7 @@ from datetime import datetime
 from pathlib import Path
 from flask import Flask, render_template, jsonify, request, send_file
 import mimetypes
+from PIL import Image as PILImage
 
 import re
 
@@ -478,6 +479,54 @@ def undo_action():
     })
 
 
+@app.route('/api/rotate', methods=['POST'])
+def rotate_image():
+    """Rotate current image 90 degrees clockwise or counterclockwise and save."""
+    global media_files, current_index
+
+    if not media_files or current_index >= len(media_files):
+        return jsonify({"error": "Keine Datei zum Rotieren"}), 400
+
+    data = request.json
+    direction = data.get('direction', 'cw')  # 'cw' or 'ccw'
+
+    filepath = media_files[current_index]
+    media_type = get_media_type(filepath)
+
+    if media_type not in ('image', 'raw'):
+        return jsonify({"error": "Nur Bilder können rotiert werden"}), 400
+
+    try:
+        img = PILImage.open(filepath)
+        # PIL rotates counter-clockwise, so for clockwise we use -90
+        angle = -90 if direction == 'cw' else 90
+        img = img.rotate(angle, expand=True)
+
+        # Preserve EXIF data if available
+        exif = img.info.get('exif')
+        save_kwargs = {}
+        if exif:
+            save_kwargs['exif'] = exif
+
+        ext = Path(filepath).suffix.lower()
+        if ext in ('.jpg', '.jpeg'):
+            img.save(filepath, 'JPEG', quality=95, **save_kwargs)
+        elif ext == '.png':
+            img.save(filepath, 'PNG', **save_kwargs)
+        elif ext == '.webp':
+            img.save(filepath, 'WEBP', quality=95, **save_kwargs)
+        elif ext == '.bmp':
+            img.save(filepath, 'BMP')
+        elif ext == '.tiff' or ext == '.tif':
+            img.save(filepath, 'TIFF', **save_kwargs)
+        else:
+            img.save(filepath, **save_kwargs)
+
+        return jsonify({"success": True, "direction": direction})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/api/stats')
 def get_stats():
     """Get current statistics."""
@@ -571,6 +620,8 @@ if __name__ == '__main__':
     print("\nSteuerung:")
     print("  → / D / Swipe Rechts = BEHALTEN")
     print("  ← / A / Swipe Links  = TRASH")
+    print("  ↑ Pfeil Hoch         = ROTIEREN (Uhrzeigersinn)")
+    print("  ↓ Pfeil Runter       = ROTIEREN (Gegen Uhrzeigersinn)")
     print("  Ctrl+Z / U           = UNDO")
     print("\nFeatures:")
     print("  - Rekursives Scannen (Jahr/Monat Ordner)")

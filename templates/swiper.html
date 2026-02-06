@@ -829,6 +829,7 @@
         <!-- Keyboard Hints -->
         <div class="keyboard-hints hidden" id="keyboardHints">
             <span><span class="key">←</span> <span class="key">A</span> Trash</span>
+            <span><span class="key">↑</span> <span class="key">↓</span> Rotate</span>
             <span><span class="key">U</span> Undo</span>
             <span><span class="key">→</span> <span class="key">D</span> Keep</span>
         </div>
@@ -1317,6 +1318,40 @@
         document.getElementById('btnKeep').addEventListener('click', () => performAction('keep'));
         document.getElementById('btnUndo').addEventListener('click', undoAction);
 
+        // Rotate image
+        async function rotateImage(direction) {
+            if (isProcessing) return;
+            isProcessing = true;
+
+            try {
+                const response = await fetch('/api/rotate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ direction })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    console.error('Rotate error:', data.error);
+                    isProcessing = false;
+                    return;
+                }
+
+                // Reload image with cache-bust to show rotated version
+                const img = mediaContent.querySelector('img');
+                if (img) {
+                    const src = img.src.split('?')[0];
+                    img.src = src + '?t=' + Date.now();
+                }
+
+                isProcessing = false;
+            } catch (error) {
+                console.error('Error:', error);
+                isProcessing = false;
+            }
+        }
+
         // Keyboard handlers
         document.addEventListener('keydown', (e) => {
             if (folderInput === document.activeElement) return;
@@ -1332,6 +1367,14 @@
                 case 'd':
                 case 'D':
                     performAction('keep');
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    rotateImage('cw');
+                    break;
+                case 'ArrowDown':
+                    e.preventDefault();
+                    rotateImage('ccw');
                     break;
                 case 'u':
                 case 'U':
